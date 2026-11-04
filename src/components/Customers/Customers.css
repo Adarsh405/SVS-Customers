@@ -79,7 +79,7 @@ body {
 }
 
 /* =====================================
-   SVS BRAND LOGO
+   SVS BRAND
 ===================================== */
 
 .svs-form-header {
@@ -147,12 +147,7 @@ body {
   width: 75px;
   height: 2px;
   margin-top: 17px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #c49a4b,
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, #c49a4b, transparent);
 }
 
 /* =====================================
@@ -386,7 +381,7 @@ body {
 }
 
 /* =====================================
-   ACTION BUTTONS
+   FORM BUTTONS
 ===================================== */
 
 .svs-form-actions {
@@ -422,12 +417,7 @@ body {
   justify-content: center;
   gap: 9px;
   color: #fff;
-  background: linear-gradient(
-    115deg,
-    #a77a2e,
-    #c49a4b,
-    #91651f
-  );
+  background: linear-gradient(115deg, #a77a2e, #c49a4b, #91651f);
   border: 1px solid #a77a2e;
   box-shadow: 0 7px 18px rgba(145, 101, 31, 0.2);
 }
@@ -478,7 +468,7 @@ body {
 }
 
 /* =====================================
-   FULL-SCREEN CONNECTION ANIMATION
+   FULL-SCREEN API CONNECTION
 ===================================== */
 
 .svs-connection-screen {
@@ -495,17 +485,8 @@ body {
   overflow: hidden;
   padding: 24px;
   background:
-    radial-gradient(
-      circle at 50% 40%,
-      #44351e 0%,
-      transparent 38%
-    ),
-    linear-gradient(
-      135deg,
-      #211a10 0%,
-      #352714 48%,
-      #17130d 100%
-    );
+    radial-gradient(circle at 50% 40%, #44351e 0%, transparent 38%),
+    linear-gradient(135deg, #211a10 0%, #352714 48%, #17130d 100%);
   animation: svsScreenAppear 0.4s ease both;
 }
 
@@ -543,7 +524,7 @@ body {
 }
 
 /* =====================================
-   ANIMATED SVS TEXT LOGO
+   ANIMATED SVS LOGO
 ===================================== */
 
 .svs-loading-logo {
@@ -566,11 +547,7 @@ body {
   justify-content: center;
   border: 2px solid #d7b365;
   border-radius: 50%;
-  background: linear-gradient(
-    145deg,
-    #fff8e6,
-    #dcb86d
-  );
+  background: linear-gradient(145deg, #fff8e6, #dcb86d);
   box-shadow:
     0 0 25px rgba(224, 184, 103, 0.4),
     inset 0 0 15px rgba(255, 255, 255, 0.7);
@@ -731,12 +708,7 @@ body {
   display: block;
   position: relative;
   border-radius: 20px;
-  background: linear-gradient(
-    90deg,
-    #99702e,
-    #e4c47d,
-    #fff0bd
-  );
+  background: linear-gradient(90deg, #99702e, #e4c47d, #fff0bd);
   box-shadow: 0 0 15px rgba(230, 190, 106, 0.55);
   transition: width 0.2s ease;
 }
@@ -787,7 +759,7 @@ body {
 }
 
 /* =====================================
-   KEYFRAME ANIMATIONS
+   ANIMATIONS
 ===================================== */
 
 @keyframes svsSpin {

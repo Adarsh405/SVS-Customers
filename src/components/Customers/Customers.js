@@ -27,12 +27,16 @@ const EMPTY_FORM = {
 class Customers extends Component {
   state = {
     form: { ...EMPTY_FORM },
-    connecting: false,
+
+    connecting: true,
     connectionProgress: 0,
+    connectionReady: false,
+
     saving: false,
     customerFound: false,
     lookupComplete: false,
     editingCustomer: null,
+
     error: "",
     success: "",
   };
@@ -41,11 +45,19 @@ class Customers extends Component {
   progressTimer = null;
   finishTimer = null;
   requestId = 0;
+  connectionRequestId = 0;
+
+  componentDidMount() {
+    this.connectToApi();
+  }
 
   componentWillUnmount() {
     clearTimeout(this.lookupTimer);
     clearInterval(this.progressTimer);
     clearTimeout(this.finishTimer);
+
+    this.requestId += 1;
+    this.connectionRequestId += 1;
   }
 
   startConnectionAnimation = () => {
@@ -84,6 +96,59 @@ class Customers extends Component {
     }, 450);
   };
 
+  stopConnectionAnimation = () => {
+    clearInterval(this.progressTimer);
+    clearTimeout(this.finishTimer);
+
+    this.setState({
+      connecting: false,
+      connectionProgress: 0,
+    });
+  };
+
+  // INITIAL BACKEND CONNECTION
+  // Called once when the page mounts.
+  connectToApi = async () => {
+    const currentRequest = ++this.connectionRequestId;
+
+    this.startConnectionAnimation();
+
+    this.setState({
+      error: "",
+      connectionReady: false,
+    });
+
+    try {
+      await axios.get(API_URL, {
+        timeout: 30000,
+      });
+
+      if (currentRequest !== this.connectionRequestId) return;
+
+      this.finishConnectionAnimation(() => {
+        if (currentRequest !== this.connectionRequestId) return;
+
+        this.setState({
+          connectionReady: true,
+          error: "",
+        });
+      });
+    } catch (error) {
+      if (currentRequest !== this.connectionRequestId) return;
+
+      console.error("SVS API connection error:", error);
+
+      this.stopConnectionAnimation();
+
+      this.setState({
+        connectionReady: false,
+        error:
+          "Unable to connect to SVS server. Please check your internet connection.",
+      });
+    }
+  };
+
+  // MOBILE NUMBER INPUT
   handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -109,7 +174,7 @@ class Customers extends Component {
           success: "",
         },
         () => {
-          if (mobile.length === 10) {
+          if (mobile.length === 10 && this.state.connectionReady) {
             this.lookupTimer = setTimeout(
               () => this.fetchCustomer(mobile),
               350
@@ -131,6 +196,7 @@ class Customers extends Component {
     }));
   };
 
+  // CUSTOMER LOOKUP
   fetchCustomer = async (mobile) => {
     if (!/^[0-9]{10}$/.test(mobile)) return;
 
@@ -141,7 +207,9 @@ class Customers extends Component {
     try {
       const response = await axios.get(
         `${API_URL}/mobile/${mobile}`,
-        { timeout: 30000 }
+        {
+          timeout: 30000,
+        }
       );
 
       if (currentRequest !== this.requestId) return;
@@ -157,7 +225,7 @@ class Customers extends Component {
       if (
         !customer ||
         customer.success === false ||
-        !customer.id
+        customer.id == null
       ) {
         this.finishConnectionAnimation(() => {
           if (currentRequest !== this.requestId) return;
@@ -184,12 +252,14 @@ class Customers extends Component {
           lookupComplete: true,
           customerFound: true,
           editingCustomer: customer,
+
           form: {
             customer_name: customer.customer_name || "",
             mobile_number: mobile,
             telugu_name: customer.telugu_name || "",
             address: customer.address || "",
           },
+
           error: "",
         });
       });
@@ -198,31 +268,29 @@ class Customers extends Component {
 
       console.error("Customer lookup error:", error);
 
-      this.finishConnectionAnimation(() => {
-        if (currentRequest !== this.requestId) return;
+      this.stopConnectionAnimation();
 
-        if (error.response?.status === 404) {
-          this.setState({
-            lookupComplete: true,
-            customerFound: false,
-            editingCustomer: null,
-            form: {
-              ...EMPTY_FORM,
-              mobile_number: mobile,
-            },
-            error: "",
-          });
-        } else {
-          this.setState({
-            lookupComplete: false,
-            customerFound: false,
-            editingCustomer: null,
-            error:
-              error.response?.data?.message ||
-              "Unable to connect to SVS. Please try again.",
-          });
-        }
-      });
+      if (error.response?.status === 404) {
+        this.setState({
+          lookupComplete: true,
+          customerFound: false,
+          editingCustomer: null,
+          form: {
+            ...EMPTY_FORM,
+            mobile_number: mobile,
+          },
+          error: "",
+        });
+      } else {
+        this.setState({
+          lookupComplete: false,
+          customerFound: false,
+          editingCustomer: null,
+          error:
+            error.response?.data?.message ||
+            "Unable to find customer details. Please retry.",
+        });
+      }
     }
   };
 
@@ -234,6 +302,7 @@ class Customers extends Component {
     }
   };
 
+  // SAVE CUSTOMER
   handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -243,13 +312,21 @@ class Customers extends Component {
       editingCustomer,
       saving,
       lookupComplete,
+      connectionReady,
     } = this.state;
 
     if (saving) return;
 
+    if (!connectionReady) {
+      this.setState({
+        error: "Please connect to the SVS server first.",
+      });
+      return;
+    }
+
     if (!lookupComplete) {
       this.setState({
-        error: "Please wait until customer verification is complete.",
+        error: "Please wait until mobile number verification is complete.",
       });
       return;
     }
@@ -283,7 +360,7 @@ class Customers extends Component {
 
     try {
       const response =
-        customerFound && editingCustomer?.id
+        customerFound && editingCustomer?.id != null
           ? await axios.put(
               `${API_URL}/${editingCustomer.id}`,
               payload
@@ -315,6 +392,7 @@ class Customers extends Component {
     }
   };
 
+  // RESET FORM
   resetForm = () => {
     clearTimeout(this.lookupTimer);
     clearInterval(this.progressTimer);
@@ -335,6 +413,7 @@ class Customers extends Component {
     });
   };
 
+  // FULL SCREEN CONNECTION ANIMATION
   renderConnectionScreen() {
     const { connectionProgress } = this.state;
 
@@ -368,7 +447,7 @@ class Customers extends Component {
             <p>
               {connectionProgress >= 100
                 ? "Customer information is ready"
-                : "Retrieving your customer information"}
+                : "Retrieving customer information"}
             </p>
           </div>
 
@@ -376,6 +455,7 @@ class Customers extends Component {
             <div className="svs-progress-heading">
               <span>
                 <i className="svs-connection-dot" />
+
                 {connectionProgress >= 100
                   ? "Connection complete"
                   : "Establishing connection"}
@@ -422,6 +502,7 @@ class Customers extends Component {
     const {
       form,
       connecting,
+      connectionReady,
       saving,
       customerFound,
       lookupComplete,
@@ -439,6 +520,8 @@ class Customers extends Component {
         <div className="svs-background-glow svs-glow-two" />
 
         <section className="svs-customer-card">
+          {/* BRAND */}
+
           <header className="svs-form-header">
             <div className="svs-brand-logo">
               <span>SVS</span>
@@ -451,6 +534,8 @@ class Customers extends Component {
 
             <div className="svs-header-line" />
           </header>
+
+          {/* HEADING */}
 
           <div className="svs-form-heading">
             <span className="svs-heading-kicker">
@@ -488,6 +573,7 @@ class Customers extends Component {
                   inputMode="numeric"
                   autoComplete="tel-national"
                   required
+                  disabled={!connectionReady}
                 />
 
                 {lookupComplete && customerFound && (
@@ -501,7 +587,9 @@ class Customers extends Component {
 
               <div className="svs-mobile-meta">
                 <span>
-                  {customerFound
+                  {!connectionReady
+                    ? "Connect to SVS server to continue"
+                    : customerFound
                     ? "Existing customer found"
                     : lookupComplete
                     ? "New customer — enter details"
@@ -566,9 +654,7 @@ class Customers extends Component {
               <label htmlFor="telugu_name">
                 <FiType />
                 Telugu Name
-                <span className="svs-optional">
-                  OPTIONAL
-                </span>
+                <span className="svs-optional">OPTIONAL</span>
               </label>
 
               <div className="svs-input-wrap">
@@ -592,9 +678,7 @@ class Customers extends Component {
               <label htmlFor="address">
                 <FiMapPin />
                 Address
-                <span className="svs-optional">
-                  OPTIONAL
-                </span>
+                <span className="svs-optional">OPTIONAL</span>
               </label>
 
               <div className="svs-input-wrap svs-textarea-wrap">
@@ -619,15 +703,17 @@ class Customers extends Component {
                 <FiAlertCircle />
                 <span>{error}</span>
 
-                {form.mobile_number.length === 10 && (
-                  <button
-                    type="button"
-                    className="svs-retry-button"
-                    onClick={this.retryLookup}
-                  >
-                    Retry
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="svs-retry-button"
+                  onClick={
+                    connectionReady
+                      ? this.retryLookup
+                      : this.connectToApi
+                  }
+                >
+                  Retry
+                </button>
               </div>
             )}
 
@@ -640,7 +726,7 @@ class Customers extends Component {
               </div>
             )}
 
-            {/* ACTION BUTTONS */}
+            {/* BUTTONS */}
 
             <div className="svs-form-actions">
               <button
@@ -657,6 +743,7 @@ class Customers extends Component {
                 className="svs-submit-button"
                 disabled={
                   saving ||
+                  !connectionReady ||
                   !lookupComplete ||
                   !form.customer_name.trim() ||
                   form.mobile_number.length !== 10
@@ -681,6 +768,8 @@ class Customers extends Component {
               </button>
             </div>
           </form>
+
+          {/* FOOTER */}
 
           <footer className="svs-form-footer">
             <span>SVS JEWELLERY</span>
