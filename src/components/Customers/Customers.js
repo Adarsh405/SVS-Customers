@@ -1,3 +1,4 @@
+
 import React, { Component } from "react";
 import axios from "axios";
 import {
@@ -27,7 +28,7 @@ class Customers extends Component {
   state = {
     form: { ...EMPTY_FORM },
     connecting: false,
-    checking: false,
+    connectionProgress: 0,
     saving: false,
     customerFound: false,
     lookupComplete: false,
@@ -53,7 +54,6 @@ class Customers extends Component {
 
     this.setState({
       connecting: true,
-      checking: true,
       connectionProgress: 0,
     });
 
@@ -70,13 +70,14 @@ class Customers extends Component {
   finishConnectionAnimation = (callback) => {
     clearInterval(this.progressTimer);
 
-    this.setState({ connectionProgress: 100 });
+    this.setState({
+      connectionProgress: 100,
+    });
 
     this.finishTimer = setTimeout(() => {
       this.setState(
         {
           connecting: false,
-          checking: false,
         },
         callback
       );
@@ -91,7 +92,6 @@ class Customers extends Component {
 
       clearTimeout(this.lookupTimer);
 
-      // Invalidate any previous lookup response.
       this.requestId += 1;
 
       this.setState(
@@ -104,7 +104,6 @@ class Customers extends Component {
           lookupComplete: false,
           editingCustomer: null,
           connecting: false,
-          checking: false,
           connectionProgress: 0,
           error: "",
           success: "",
@@ -155,7 +154,11 @@ class Customers extends Component {
         data?.data ||
         data;
 
-      if (!customer || customer.success === false || !customer.id) {
+      if (
+        !customer ||
+        customer.success === false ||
+        !customer.id
+      ) {
         this.finishConnectionAnimation(() => {
           if (currentRequest !== this.requestId) return;
 
@@ -225,6 +228,7 @@ class Customers extends Component {
 
   retryLookup = () => {
     const mobile = this.state.form.mobile_number;
+
     if (mobile.length === 10) {
       this.fetchCustomer(mobile);
     }
@@ -321,7 +325,6 @@ class Customers extends Component {
     this.setState({
       form: { ...EMPTY_FORM },
       connecting: false,
-      checking: false,
       connectionProgress: 0,
       saving: false,
       customerFound: false,
@@ -344,6 +347,7 @@ class Customers extends Component {
           <div className="svs-loading-logo">
             <div className="svs-logo-ring svs-ring-one" />
             <div className="svs-logo-ring svs-ring-two" />
+
             <div className="svs-logo-center">
               <span>SVS</span>
             </div>
@@ -383,11 +387,19 @@ class Customers extends Component {
             <div className="svs-progress-bar">
               <div
                 className="svs-progress-bar-fill"
-                style={{ width: `${connectionProgress}%` }}
+                style={{
+                  width: `${connectionProgress}%`,
+                }}
               />
+
               <div
                 className="svs-progress-shimmer"
-                style={{ left: `${Math.max(connectionProgress - 10, 0)}%` }}
+                style={{
+                  left: `${Math.max(
+                    connectionProgress - 10,
+                    0
+                  )}%`,
+                }}
               />
             </div>
           </div>
@@ -410,7 +422,6 @@ class Customers extends Component {
     const {
       form,
       connecting,
-      connectionProgress,
       saving,
       customerFound,
       lookupComplete,
@@ -445,7 +456,9 @@ class Customers extends Component {
             <span className="svs-heading-kicker">
               CUSTOMER INFORMATION
             </span>
+
             <h2>Welcome</h2>
+
             <p>
               Enter your mobile number to retrieve or register
               your details.
@@ -453,6 +466,8 @@ class Customers extends Component {
           </div>
 
           <form onSubmit={this.handleSubmit}>
+            {/* MOBILE NUMBER */}
+
             <div className="svs-field">
               <label htmlFor="mobile_number">
                 <FiPhone />
@@ -493,9 +508,13 @@ class Customers extends Component {
                     : "Enter all 10 digits to search automatically"}
                 </span>
 
-                <strong>{form.mobile_number.length}/10</strong>
+                <strong>
+                  {form.mobile_number.length}/10
+                </strong>
               </div>
             </div>
+
+            {/* CUSTOMER STATUS */}
 
             {customerFound && lookupComplete && (
               <div className="svs-result-banner svs-found-banner">
@@ -515,6 +534,8 @@ class Customers extends Component {
               </div>
             )}
 
+            {/* CUSTOMER NAME */}
+
             <div className="svs-field">
               <label htmlFor="customer_name">
                 <FiUser />
@@ -523,6 +544,7 @@ class Customers extends Component {
 
               <div className="svs-input-wrap">
                 <FiUser className="svs-field-icon" />
+
                 <input
                   id="customer_name"
                   type="text"
@@ -538,15 +560,20 @@ class Customers extends Component {
               </div>
             </div>
 
+            {/* TELUGU NAME */}
+
             <div className="svs-field">
               <label htmlFor="telugu_name">
                 <FiType />
                 Telugu Name
-                <span className="svs-optional">OPTIONAL</span>
+                <span className="svs-optional">
+                  OPTIONAL
+                </span>
               </label>
 
               <div className="svs-input-wrap">
                 <FiType className="svs-field-icon" />
+
                 <input
                   id="telugu_name"
                   type="text"
@@ -559,15 +586,20 @@ class Customers extends Component {
               </div>
             </div>
 
+            {/* ADDRESS */}
+
             <div className="svs-field">
               <label htmlFor="address">
                 <FiMapPin />
                 Address
-                <span className="svs-optional">OPTIONAL</span>
+                <span className="svs-optional">
+                  OPTIONAL
+                </span>
               </label>
 
               <div className="svs-input-wrap svs-textarea-wrap">
                 <FiMapPin className="svs-field-icon" />
+
                 <textarea
                   id="address"
                   name="address"
@@ -580,10 +612,13 @@ class Customers extends Component {
               </div>
             </div>
 
+            {/* ERROR */}
+
             {error && (
               <div className="svs-form-message svs-error-message">
                 <FiAlertCircle />
                 <span>{error}</span>
+
                 {form.mobile_number.length === 10 && (
                   <button
                     type="button"
@@ -596,12 +631,16 @@ class Customers extends Component {
               </div>
             )}
 
+            {/* SUCCESS */}
+
             {success && (
               <div className="svs-form-message svs-success-message">
                 <FiCheckCircle />
                 {success}
               </div>
             )}
+
+            {/* ACTION BUTTONS */}
 
             <div className="svs-form-actions">
               <button

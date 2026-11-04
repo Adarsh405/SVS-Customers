@@ -1,3 +1,4 @@
+
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap");
 
 * {
@@ -16,9 +17,9 @@ body {
   font-family: "DM Sans", sans-serif;
 }
 
-/* =================================
-   CUSTOMER REGISTRATION PAGE
-================================= */
+/* =====================================
+   CUSTOMER REGISTRATION SCREEN
+===================================== */
 
 .svs-customer-screen {
   width: 100%;
@@ -77,9 +78,9 @@ body {
   animation: svsCardEnter 0.65s ease both;
 }
 
-/* =================================
-   BRAND LOGO
-================================= */
+/* =====================================
+   SVS BRAND LOGO
+===================================== */
 
 .svs-form-header {
   display: flex;
@@ -146,12 +147,17 @@ body {
   width: 75px;
   height: 2px;
   margin-top: 17px;
-  background: linear-gradient(90deg, transparent, #c49a4b, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #c49a4b,
+    transparent
+  );
 }
 
-/* =================================
+/* =====================================
    FORM HEADING
-================================= */
+===================================== */
 
 .svs-form-heading {
   text-align: center;
@@ -181,9 +187,9 @@ body {
   line-height: 1.6;
 }
 
-/* =================================
+/* =====================================
    FORM FIELDS
-================================= */
+===================================== */
 
 .svs-field {
   margin-bottom: 16px;
@@ -326,9 +332,9 @@ body {
   line-height: 1.6;
 }
 
-/* =================================
+/* =====================================
    STATUS BANNERS
-================================= */
+===================================== */
 
 .svs-result-banner,
 .svs-form-message {
@@ -379,9 +385,9 @@ body {
   cursor: pointer;
 }
 
-/* =================================
+/* =====================================
    ACTION BUTTONS
-================================= */
+===================================== */
 
 .svs-form-actions {
   display: grid;
@@ -416,7 +422,12 @@ body {
   justify-content: center;
   gap: 9px;
   color: #fff;
-  background: linear-gradient(115deg, #a77a2e, #c49a4b, #91651f);
+  background: linear-gradient(
+    115deg,
+    #a77a2e,
+    #c49a4b,
+    #91651f
+  );
   border: 1px solid #a77a2e;
   box-shadow: 0 7px 18px rgba(145, 101, 31, 0.2);
 }
@@ -436,9 +447,9 @@ body {
   animation: svsSpin 1s linear infinite;
 }
 
-/* =================================
-   FORM FOOTER
-================================= */
+/* =====================================
+   FOOTER
+===================================== */
 
 .svs-form-footer {
   display: flex;
@@ -466,9 +477,9 @@ body {
   background: #c7a25e;
 }
 
-/* =================================
-   FULL SCREEN API CONNECTION
-================================= */
+/* =====================================
+   FULL-SCREEN CONNECTION ANIMATION
+===================================== */
 
 .svs-connection-screen {
   width: 100%;
@@ -484,8 +495,17 @@ body {
   overflow: hidden;
   padding: 24px;
   background:
-    radial-gradient(circle at 50% 40%, #fff9e9 0%, transparent 35%),
-    linear-gradient(135deg, #211a10 0%, #352714 48%, #17130d 100%);
+    radial-gradient(
+      circle at 50% 40%,
+      #44351e 0%,
+      transparent 38%
+    ),
+    linear-gradient(
+      135deg,
+      #211a10 0%,
+      #352714 48%,
+      #17130d 100%
+    );
   animation: svsScreenAppear 0.4s ease both;
 }
 
@@ -522,7 +542,9 @@ body {
   animation: svsContentAppear 0.8s ease both;
 }
 
-/* ANIMATED SVS TEXT LOGO */
+/* =====================================
+   ANIMATED SVS TEXT LOGO
+===================================== */
 
 .svs-loading-logo {
   width: 145px;
@@ -544,7 +566,11 @@ body {
   justify-content: center;
   border: 2px solid #d7b365;
   border-radius: 50%;
-  background: linear-gradient(145deg, #fff8e6, #dcb86d);
+  background: linear-gradient(
+    145deg,
+    #fff8e6,
+    #dcb86d
+  );
   box-shadow:
     0 0 25px rgba(224, 184, 103, 0.4),
     inset 0 0 15px rgba(255, 255, 255, 0.7);
@@ -602,7 +628,9 @@ body {
   animation: svsSpark 2s ease-in-out infinite 0.7s;
 }
 
-/* LOADING BRAND */
+/* =====================================
+   LOADING BRAND
+===================================== */
 
 .svs-loading-brand h1 {
   margin: 0;
@@ -623,7 +651,9 @@ body {
   letter-spacing: 3px;
 }
 
-/* LOADING MESSAGE */
+/* =====================================
+   LOADING MESSAGE
+===================================== */
 
 .svs-loading-message {
   margin-top: 47px;
@@ -644,7 +674,9 @@ body {
   font-size: 12px;
 }
 
-/* PROGRESS */
+/* =====================================
+   PROGRESS BAR
+===================================== */
 
 .svs-loading-progress {
   margin-top: 35px;
@@ -719,7 +751,9 @@ body {
   animation: svsShimmer 1.3s ease-in-out infinite;
 }
 
-/* LOADING DOTS */
+/* =====================================
+   LOADING DOTS
+===================================== */
 
 .svs-loading-dots {
   display: flex;
@@ -752,9 +786,9 @@ body {
   letter-spacing: 2px;
 }
 
-/* =================================
-   ANIMATIONS
-================================= */
+/* =====================================
+   KEYFRAME ANIMATIONS
+===================================== */
 
 @keyframes svsSpin {
   to {
@@ -773,6 +807,7 @@ body {
     opacity: 0.3;
     transform: scale(0.7);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.4);
@@ -784,6 +819,7 @@ body {
     opacity: 0.5;
     transform: scale(0.85);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.2);
@@ -795,6 +831,7 @@ body {
     transform: translateY(0);
     opacity: 0.4;
   }
+
   30% {
     transform: translateY(-7px);
     opacity: 1;
@@ -806,9 +843,11 @@ body {
     transform: translateX(-20px);
     opacity: 0;
   }
+
   50% {
     opacity: 0.8;
   }
+
   100% {
     transform: translateX(45px);
     opacity: 0;
@@ -820,6 +859,7 @@ body {
     transform: scale(0.9);
     opacity: 0.16;
   }
+
   to {
     transform: scale(1.15);
     opacity: 0.3;
@@ -830,6 +870,7 @@ body {
   from {
     transform: translate(0, 0) scale(0.9);
   }
+
   to {
     transform: translate(35px, 30px) scale(1.2);
   }
@@ -839,6 +880,7 @@ body {
   0%, 100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-5px);
   }
@@ -849,6 +891,7 @@ body {
     opacity: 0;
     transform: translateY(22px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -860,6 +903,7 @@ body {
     opacity: 0;
     transform: translateY(9px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -870,6 +914,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -880,15 +925,16 @@ body {
     opacity: 0;
     transform: translateY(18px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* =================================
+/* =====================================
    MOBILE RESPONSIVENESS
-================================= */
+===================================== */
 
 @media (max-width: 600px) {
   .svs-customer-screen {
@@ -1023,7 +1069,9 @@ body {
   }
 }
 
-/* ACCESSIBILITY */
+/* =====================================
+   ACCESSIBILITY
+===================================== */
 
 @media (prefers-reduced-motion: reduce) {
   *,
