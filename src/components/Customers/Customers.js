@@ -27,7 +27,6 @@ class Customers extends Component {
   state = {
     form: { ...EMPTY_FORM },
     connecting: false,
-    connectionProgress: 0,
     checking: false,
     saving: false,
     customerFound: false,
