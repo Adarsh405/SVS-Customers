@@ -1,4 +1,3 @@
-
 import React, { Component } from "react";
 import axios from "axios";
 import {
@@ -10,145 +9,118 @@ import {
   FiRefreshCw,
   FiCheckCircle,
   FiAlertCircle,
-  FiSearch,
+  FiWifi,
+  FiArrowRight,
 } from "react-icons/fi";
+
 import "./Customers.css";
 
 const API_URL =
   "https://svs-jewellery-backend.onrender.com/api/customers";
 
-const EMPTY_FORM = {
-  customer_name: "",
-  mobile_number: "",
-  telugu_name: "",
-  address: "",
-};
-
 class Customers extends Component {
   state = {
-    form: { ...EMPTY_FORM },
-
     connecting: true,
     connectionProgress: 0,
-    connectionReady: false,
+    connectionError: "",
+
+    form: {
+      customer_name: "",
+      mobile_number: "",
+      telugu_name: "",
+      address: "",
+    },
+
+    editingCustomer: null,
+    lookupComplete: false,
+    checkingMobile: false,
 
     saving: false,
-    customerFound: false,
-    lookupComplete: false,
-    editingCustomer: null,
-
     error: "",
     success: "",
   };
 
+  connectionTimer = null;
   lookupTimer = null;
-  progressTimer = null;
-  finishTimer = null;
+  connectionRequest = false;
   requestId = 0;
-  connectionRequestId = 0;
+  mounted = false;
 
   componentDidMount() {
+    this.mounted = true;
     this.connectToApi();
   }
 
   componentWillUnmount() {
+    this.mounted = false;
+    clearInterval(this.connectionTimer);
     clearTimeout(this.lookupTimer);
-    clearInterval(this.progressTimer);
-    clearTimeout(this.finishTimer);
-
     this.requestId += 1;
-    this.connectionRequestId += 1;
   }
 
-  startConnectionAnimation = () => {
-    clearInterval(this.progressTimer);
-    clearTimeout(this.finishTimer);
+  // --------------------------------------------------
+  // INITIAL BACKEND CONNECTION
+  // --------------------------------------------------
+
+  connectToApi = async () => {
+    if (this.connectionRequest) return;
+
+    this.connectionRequest = true;
+    clearInterval(this.connectionTimer);
 
     this.setState({
       connecting: true,
       connectionProgress: 0,
+      connectionError: "",
     });
 
-    this.progressTimer = setInterval(() => {
-      this.setState((prev) => ({
-        connectionProgress: Math.min(
-          prev.connectionProgress + Math.ceil(Math.random() * 5),
-          92
-        ),
-      }));
-    }, 120);
-  };
+    let progress = 0;
 
-  finishConnectionAnimation = (callback) => {
-    clearInterval(this.progressTimer);
+    this.connectionTimer = setInterval(() => {
+      progress = Math.min(progress + Math.floor(Math.random() * 8) + 3, 90);
 
-    this.setState({
-      connectionProgress: 100,
-    });
-
-    this.finishTimer = setTimeout(() => {
-      this.setState(
-        {
-          connecting: false,
-        },
-        callback
-      );
-    }, 450);
-  };
-
-  stopConnectionAnimation = () => {
-    clearInterval(this.progressTimer);
-    clearTimeout(this.finishTimer);
-
-    this.setState({
-      connecting: false,
-      connectionProgress: 0,
-    });
-  };
-
-  // INITIAL BACKEND CONNECTION
-  // Called once when the page mounts.
-  connectToApi = async () => {
-    const currentRequest = ++this.connectionRequestId;
-
-    this.startConnectionAnimation();
-
-    this.setState({
-      error: "",
-      connectionReady: false,
-    });
+      if (this.mounted) {
+        this.setState({ connectionProgress: progress });
+      }
+    }, 180);
 
     try {
-      await axios.get(API_URL, {
-        timeout: 30000,
-      });
+      await axios.get(API_URL, { timeout: 30000 });
 
-      if (currentRequest !== this.connectionRequestId) return;
+      clearInterval(this.connectionTimer);
 
-      this.finishConnectionAnimation(() => {
-        if (currentRequest !== this.connectionRequestId) return;
+      this.setState({ connectionProgress: 100 });
+
+      setTimeout(() => {
+        if (!this.mounted) return;
 
         this.setState({
-          connectionReady: true,
-          error: "",
+          connecting: false,
+          connectionError: "",
         });
-      });
+
+        this.connectionRequest = false;
+      }, 650);
     } catch (error) {
-      if (currentRequest !== this.connectionRequestId) return;
+      clearInterval(this.connectionTimer);
 
-      console.error("SVS API connection error:", error);
+      if (!this.mounted) return;
 
-      this.stopConnectionAnimation();
+      this.connectionRequest = false;
 
       this.setState({
-        connectionReady: false,
-        error:
-          "Unable to connect to SVS server. Please check your internet connection.",
+        connecting: false,
+        connectionProgress: 0,
+        connectionError:
+          "Unable to connect. Please check your internet connection.",
       });
     }
   };
 
-  // MOBILE NUMBER INPUT
+  // --------------------------------------------------
+  // MOBILE NUMBER CHANGE
+  // --------------------------------------------------
+
   handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -157,28 +129,35 @@ class Customers extends Component {
 
       clearTimeout(this.lookupTimer);
 
+      // Invalidate previous lookup requests
       this.requestId += 1;
 
       this.setState(
-        {
+        (prev) => ({
           form: {
-            ...EMPTY_FORM,
+            ...prev.form,
             mobile_number: mobile,
+            ...(mobile.length !== 10
+              ? {
+                  customer_name: "",
+                  telugu_name: "",
+                  address: "",
+                }
+              : {}),
           },
-          customerFound: false,
-          lookupComplete: false,
           editingCustomer: null,
-          connecting: false,
-          connectionProgress: 0,
+          lookupComplete: false,
+          checkingMobile: mobile.length === 10,
           error: "",
           success: "",
-        },
+        }),
         () => {
-          if (mobile.length === 10 && this.state.connectionReady) {
-            this.lookupTimer = setTimeout(
-              () => this.fetchCustomer(mobile),
-              350
-            );
+          if (mobile.length === 10) {
+            this.lookupTimer = setTimeout(() => {
+              this.fetchCustomer(mobile);
+            }, 350);
+          } else {
+            this.setState({ checkingMobile: false });
           }
         }
       );
@@ -196,160 +175,112 @@ class Customers extends Component {
     }));
   };
 
-  // CUSTOMER LOOKUP
-  fetchCustomer = async (mobile) => {
-    if (!/^[0-9]{10}$/.test(mobile)) return;
+  // --------------------------------------------------
+  // LOOKUP CUSTOMER BY MOBILE
+  // No full-screen animation here
+  // --------------------------------------------------
 
+  fetchCustomer = async (mobile) => {
     const currentRequest = ++this.requestId;
 
-    this.startConnectionAnimation();
+    this.setState({
+      checkingMobile: true,
+      lookupComplete: false,
+      error: "",
+    });
 
     try {
       const response = await axios.get(
         `${API_URL}/mobile/${mobile}`,
-        {
-          timeout: 30000,
-        }
+        { timeout: 15000 }
       );
 
-      if (currentRequest !== this.requestId) return;
-
-      const data = response.data;
+      if (!this.mounted || currentRequest !== this.requestId) return;
 
       const customer =
-        data?.customer ||
-        data?.data?.customer ||
-        data?.data ||
-        data;
+        response.data?.customer ||
+        response.data?.data?.customer ||
+        response.data?.data ||
+        response.data;
 
-      if (
-        !customer ||
-        customer.success === false ||
-        customer.id == null
-      ) {
-        this.finishConnectionAnimation(() => {
-          if (currentRequest !== this.requestId) return;
-
-          this.setState({
-            lookupComplete: true,
-            customerFound: false,
-            editingCustomer: null,
-            form: {
-              ...EMPTY_FORM,
-              mobile_number: mobile,
-            },
-            error: "",
-          });
+      if (!customer || !customer.id) {
+        this.setState({
+          checkingMobile: false,
+          lookupComplete: true,
+          editingCustomer: null,
         });
-
         return;
       }
 
-      this.finishConnectionAnimation(() => {
-        if (currentRequest !== this.requestId) return;
-
-        this.setState({
-          lookupComplete: true,
-          customerFound: true,
-          editingCustomer: customer,
-
-          form: {
-            customer_name: customer.customer_name || "",
-            mobile_number: mobile,
-            telugu_name: customer.telugu_name || "",
-            address: customer.address || "",
-          },
-
-          error: "",
-        });
+      this.setState({
+        checkingMobile: false,
+        lookupComplete: true,
+        editingCustomer: customer,
+        form: {
+          customer_name: customer.customer_name || "",
+          mobile_number: mobile,
+          telugu_name: customer.telugu_name || "",
+          address: customer.address || "",
+        },
+        success: "Existing customer found.",
       });
     } catch (error) {
-      if (currentRequest !== this.requestId) return;
-
-      console.error("Customer lookup error:", error);
-
-      this.stopConnectionAnimation();
+      if (!this.mounted || currentRequest !== this.requestId) return;
 
       if (error.response?.status === 404) {
         this.setState({
+          checkingMobile: false,
           lookupComplete: true,
-          customerFound: false,
           editingCustomer: null,
-          form: {
-            ...EMPTY_FORM,
-            mobile_number: mobile,
-          },
-          error: "",
+          success: "New customer. Please enter the details.",
         });
       } else {
         this.setState({
-          lookupComplete: false,
-          customerFound: false,
-          editingCustomer: null,
+          checkingMobile: false,
+          lookupComplete: true,
           error:
             error.response?.data?.message ||
-            "Unable to find customer details. Please retry.",
+            "Unable to check this mobile number.",
         });
       }
     }
   };
 
-  retryLookup = () => {
-    const mobile = this.state.form.mobile_number;
+  // --------------------------------------------------
+  // SUBMIT CUSTOMER
+  // --------------------------------------------------
 
-    if (mobile.length === 10) {
-      this.fetchCustomer(mobile);
-    }
-  };
-
-  // SAVE CUSTOMER
   handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (this.state.saving) return;
+
     const {
-      form,
-      customerFound,
-      editingCustomer,
-      saving,
-      lookupComplete,
-      connectionReady,
-    } = this.state;
+      customer_name,
+      mobile_number,
+      telugu_name,
+      address,
+    } = this.state.form;
 
-    if (saving) return;
+    const { editingCustomer } = this.state;
 
-    if (!connectionReady) {
-      this.setState({
-        error: "Please connect to the SVS server first.",
-      });
+    if (!customer_name.trim()) {
+      this.setState({ error: "Please enter customer name." });
       return;
     }
 
-    if (!lookupComplete) {
-      this.setState({
-        error: "Please wait until mobile number verification is complete.",
-      });
-      return;
-    }
-
-    if (!/^[0-9]{10}$/.test(form.mobile_number)) {
+    if (!/^[0-9]{10}$/.test(mobile_number)) {
       this.setState({
         error: "Please enter a valid 10-digit mobile number.",
       });
       return;
     }
 
-    if (!form.customer_name.trim()) {
-      this.setState({
-        error: "Please enter customer name.",
-      });
-      return;
-    }
-
     const payload = {
-      customer_name: form.customer_name.trim(),
-      mobile_number: form.mobile_number,
-      telugu_name: form.telugu_name.trim() || null,
-      address: form.address.trim(),
+      customer_name: customer_name.trim(),
+      mobile_number: mobile_number.trim(),
+      telugu_name: telugu_name.trim() || null,
+      address: address.trim() || null,
     };
 
     this.setState({
@@ -359,153 +290,141 @@ class Customers extends Component {
     });
 
     try {
-      const response =
-        customerFound && editingCustomer?.id != null
-          ? await axios.put(
-              `${API_URL}/${editingCustomer.id}`,
-              payload
-            )
-          : await axios.post(API_URL, payload);
-
-      if (response.data?.success === false) {
-        throw new Error(
-          response.data?.message || "Unable to save customer."
+      if (editingCustomer?.id) {
+        await axios.put(
+          `${API_URL}/${editingCustomer.id}`,
+          payload
         );
+      } else {
+        await axios.post(API_URL, payload);
       }
+
+      if (!this.mounted) return;
 
       this.setState({
         saving: false,
-        success: customerFound
-          ? "Customer details updated successfully!"
-          : "New customer registered successfully!",
+        success: editingCustomer
+          ? "Customer updated successfully!"
+          : "Customer registered successfully!",
+        error: "",
       });
+
+      setTimeout(() => {
+        if (!this.mounted) return;
+
+        this.setState({
+          form: {
+            customer_name: "",
+            mobile_number: "",
+            telugu_name: "",
+            address: "",
+          },
+          editingCustomer: null,
+          lookupComplete: false,
+          checkingMobile: false,
+          success: "",
+          error: "",
+        });
+      }, 1400);
     } catch (error) {
-      console.error("Save customer error:", error);
+      if (!this.mounted) return;
 
       this.setState({
         saving: false,
         error:
           error.response?.data?.message ||
-          error.message ||
           "Unable to save customer. Please try again.",
       });
     }
   };
 
+  // --------------------------------------------------
   // RESET FORM
+  // --------------------------------------------------
+
   resetForm = () => {
     clearTimeout(this.lookupTimer);
-    clearInterval(this.progressTimer);
-    clearTimeout(this.finishTimer);
-
     this.requestId += 1;
 
     this.setState({
-      form: { ...EMPTY_FORM },
-      connecting: false,
-      connectionProgress: 0,
-      saving: false,
-      customerFound: false,
-      lookupComplete: false,
+      form: {
+        customer_name: "",
+        mobile_number: "",
+        telugu_name: "",
+        address: "",
+      },
       editingCustomer: null,
+      lookupComplete: false,
+      checkingMobile: false,
       error: "",
       success: "",
     });
   };
 
-  // FULL SCREEN CONNECTION ANIMATION
-  renderConnectionScreen() {
-    const { connectionProgress } = this.state;
+  // --------------------------------------------------
+  // CONNECTION SCREEN
+  // --------------------------------------------------
+
+  renderConnectionScreen = () => {
+    const { connectionProgress, connectionError } = this.state;
 
     return (
       <div className="svs-connection-screen">
-        <div className="svs-connect-orb svs-connect-orb-one" />
-        <div className="svs-connect-orb svs-connect-orb-two" />
+        <div className="connection-glow connection-glow-one" />
+        <div className="connection-glow connection-glow-two" />
 
-        <div className="svs-connection-content">
-          <div className="svs-loading-logo">
-            <div className="svs-logo-ring svs-ring-one" />
-            <div className="svs-logo-ring svs-ring-two" />
-
-            <div className="svs-logo-center">
+        <div className="connection-content">
+          <div className="svs-logo">
+            <div className="svs-logo-inner">
               <span>SVS</span>
             </div>
           </div>
 
-          <div className="svs-loading-brand">
-            <h1>SVS JEWELLERY</h1>
-            <span>EXCELLENCE IN EVERY DETAIL</span>
+          <div className="connection-brand">SVS JEWELLERY</div>
+          <div className="connection-subtitle">
+            A tradition of trust & elegance
           </div>
 
-          <div className="svs-loading-message">
-            <h2>
-              {connectionProgress >= 100
-                ? "Connected Successfully"
-                : "Connecting Securely"}
-            </h2>
-
-            <p>
-              {connectionProgress >= 100
-                ? "Customer information is ready"
-                : "Retrieving customer information"}
-            </p>
+          <div className="connection-progress-track">
+            <div
+              className="connection-progress-fill"
+              style={{ width: `${connectionProgress}%` }}
+            />
           </div>
 
-          <div className="svs-loading-progress">
-            <div className="svs-progress-heading">
-              <span>
-                <i className="svs-connection-dot" />
+          <div className="connection-percentage">
+            {connectionProgress}%
+          </div>
 
-                {connectionProgress >= 100
-                  ? "Connection complete"
-                  : "Establishing connection"}
-              </span>
+          <div className="connection-status">
+            <FiWifi />
+            Connecting securely to SVS server
+          </div>
 
-              <strong>{connectionProgress}%</strong>
+          {connectionError && (
+            <div className="connection-error">
+              <p>{connectionError}</p>
+              <button onClick={this.connectToApi}>
+                <FiRefreshCw /> Retry connection
+              </button>
             </div>
-
-            <div className="svs-progress-bar">
-              <div
-                className="svs-progress-bar-fill"
-                style={{
-                  width: `${connectionProgress}%`,
-                }}
-              />
-
-              <div
-                className="svs-progress-shimmer"
-                style={{
-                  left: `${Math.max(
-                    connectionProgress - 10,
-                    0
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="svs-loading-dots">
-            <span />
-            <span />
-            <span />
-          </div>
-
-          <div className="svs-loading-footer">
-            A PREMIUM CUSTOMER EXPERIENCE
-          </div>
+          )}
         </div>
       </div>
     );
-  }
+  };
+
+  // --------------------------------------------------
+  // MAIN FORM
+  // --------------------------------------------------
 
   render() {
     const {
-      form,
       connecting,
-      connectionReady,
+      form,
+      editingCustomer,
+      checkingMobile,
       saving,
-      customerFound,
-      lookupComplete,
       error,
       success,
     } = this.state;
@@ -515,52 +434,64 @@ class Customers extends Component {
     }
 
     return (
-      <main className="svs-customer-screen">
-        <div className="svs-background-glow svs-glow-one" />
-        <div className="svs-background-glow svs-glow-two" />
+      <main className="customers-page">
+        <div className="customer-bg-orb orb-one" />
+        <div className="customer-bg-orb orb-two" />
+        <div className="customer-bg-grid" />
 
-        <section className="svs-customer-card">
-          {/* BRAND */}
-
-          <header className="svs-form-header">
-            <div className="svs-brand-logo">
+        <section className="registration-card">
+          <header className="registration-header">
+            <div className="registration-logo">
               <span>SVS</span>
             </div>
 
-            <div className="svs-brand-name">
+            <div className="registration-brand">
+              <span>WELCOME TO</span>
               <h1>SVS JEWELLERY</h1>
               <p>Customer Registration</p>
             </div>
 
-            <div className="svs-header-line" />
+            <div className="secure-indicator">
+              <span className="secure-dot" />
+              Connected
+            </div>
           </header>
 
-          {/* HEADING */}
+          <div className="registration-divider" />
 
-          <div className="svs-form-heading">
-            <span className="svs-heading-kicker">
-              CUSTOMER INFORMATION
-            </span>
+          <div className="registration-heading">
+            <div>
+              <h2>
+                {editingCustomer
+                  ? "Welcome Back!"
+                  : "Your Details"}
+              </h2>
+              <p>
+                {editingCustomer
+                  ? "We found your existing customer profile."
+                  : "Please enter your details to continue."}
+              </p>
+            </div>
 
-            <h2>Welcome</h2>
-
-            <p>
-              Enter your mobile number to retrieve or register
-              your details.
-            </p>
+            {editingCustomer && (
+              <span className="existing-tag">
+                <FiCheckCircle /> Existing
+              </span>
+            )}
           </div>
 
-          <form onSubmit={this.handleSubmit}>
-            {/* MOBILE NUMBER */}
-
-            <div className="svs-field">
+          <form
+            className="customer-registration-form"
+            onSubmit={this.handleSubmit}
+          >
+            <div className="registration-field">
               <label htmlFor="mobile_number">
                 <FiPhone />
-                Mobile Number <b>*</b>
+                Mobile Number <span className="required">*</span>
               </label>
 
-              <div className="svs-input-wrap svs-mobile-wrap">
-                <span className="svs-country-code">+91</span>
+              <div className="registration-input mobile-input">
+                <span className="country-code">+91</span>
 
                 <input
                   id="mobile_number"
@@ -568,70 +499,37 @@ class Customers extends Component {
                   name="mobile_number"
                   value={form.mobile_number}
                   onChange={this.handleChange}
-                  placeholder="Enter 10-digit mobile number"
+                  placeholder="Enter 10 digit mobile number"
                   maxLength={10}
                   inputMode="numeric"
-                  autoComplete="tel-national"
+                  autoComplete="tel"
                   required
-                  disabled={!connectionReady}
                 />
 
-                {lookupComplete && customerFound && (
-                  <FiCheckCircle className="svs-input-success" />
-                )}
-
-                {lookupComplete && !customerFound && (
-                  <FiSearch className="svs-input-search" />
-                )}
-              </div>
-
-              <div className="svs-mobile-meta">
-                <span>
-                  {!connectionReady
-                    ? "Connect to SVS server to continue"
-                    : customerFound
-                    ? "Existing customer found"
-                    : lookupComplete
-                    ? "New customer — enter details"
-                    : "Enter all 10 digits to search automatically"}
+                <span className="mobile-count">
+                  {checkingMobile ? (
+                    <FiRefreshCw className="spin" />
+                  ) : (
+                    `${form.mobile_number.length}/10`
+                  )}
                 </span>
-
-                <strong>
-                  {form.mobile_number.length}/10
-                </strong>
               </div>
+
+              <small className="field-hint">
+                {checkingMobile
+                  ? "Checking customer details..."
+                  : "Enter your mobile number to check your profile."}
+              </small>
             </div>
 
-            {/* CUSTOMER STATUS */}
-
-            {customerFound && lookupComplete && (
-              <div className="svs-result-banner svs-found-banner">
-                <FiCheckCircle />
-                <span>
-                  Customer found! You can modify the details below.
-                </span>
-              </div>
-            )}
-
-            {!customerFound && lookupComplete && (
-              <div className="svs-result-banner svs-new-banner">
-                <FiUser />
-                <span>
-                  New customer. Please fill in your details.
-                </span>
-              </div>
-            )}
-
-            {/* CUSTOMER NAME */}
-
-            <div className="svs-field">
+            <div className="registration-field">
               <label htmlFor="customer_name">
                 <FiUser />
-                Customer Name <b>*</b>
+                Customer Name <span className="required">*</span>
               </label>
 
-              <div className="svs-input-wrap">
-                <FiUser className="svs-field-icon" />
+              <div className="registration-input">
+                <FiUser />
 
                 <input
                   id="customer_name"
@@ -639,26 +537,22 @@ class Customers extends Component {
                   name="customer_name"
                   value={form.customer_name}
                   onChange={this.handleChange}
-                  placeholder="Enter customer name"
-                  maxLength={150}
+                  placeholder="Enter customer full name"
                   autoComplete="name"
                   required
-                  disabled={!lookupComplete}
                 />
               </div>
             </div>
 
-            {/* TELUGU NAME */}
-
-            <div className="svs-field">
+            <div className="registration-field">
               <label htmlFor="telugu_name">
                 <FiType />
                 Telugu Name
-                <span className="svs-optional">OPTIONAL</span>
+                <span className="optional">Optional</span>
               </label>
 
-              <div className="svs-input-wrap">
-                <FiType className="svs-field-icon" />
+              <div className="registration-input">
+                <FiType />
 
                 <input
                   id="telugu_name"
@@ -667,71 +561,51 @@ class Customers extends Component {
                   value={form.telugu_name}
                   onChange={this.handleChange}
                   placeholder="తెలుగు పేరు"
-                  disabled={!lookupComplete}
+                  autoComplete="off"
                 />
               </div>
             </div>
 
-            {/* ADDRESS */}
-
-            <div className="svs-field">
+            <div className="registration-field">
               <label htmlFor="address">
                 <FiMapPin />
                 Address
-                <span className="svs-optional">OPTIONAL</span>
+                <span className="optional">Optional</span>
               </label>
 
-              <div className="svs-input-wrap svs-textarea-wrap">
-                <FiMapPin className="svs-field-icon" />
+              <div className="registration-input">
+                <FiMapPin />
 
-                <textarea
+                <input
                   id="address"
+                  type="text"
                   name="address"
                   value={form.address}
                   onChange={this.handleChange}
-                  placeholder="Enter complete address"
-                  rows={3}
-                  disabled={!lookupComplete}
+                  placeholder="Enter your address"
+                  autoComplete="street-address"
                 />
               </div>
             </div>
 
-            {/* ERROR */}
-
             {error && (
-              <div className="svs-form-message svs-error-message">
+              <div className="registration-message message-error">
                 <FiAlertCircle />
-                <span>{error}</span>
-
-                <button
-                  type="button"
-                  className="svs-retry-button"
-                  onClick={
-                    connectionReady
-                      ? this.retryLookup
-                      : this.connectToApi
-                  }
-                >
-                  Retry
-                </button>
+                {error}
               </div>
             )}
 
-            {/* SUCCESS */}
-
             {success && (
-              <div className="svs-form-message svs-success-message">
+              <div className="registration-message message-success">
                 <FiCheckCircle />
                 {success}
               </div>
             )}
 
-            {/* BUTTONS */}
-
-            <div className="svs-form-actions">
+            <div className="registration-actions">
               <button
                 type="button"
-                className="svs-reset-button"
+                className="registration-reset"
                 onClick={this.resetForm}
                 disabled={saving}
               >
@@ -740,41 +614,30 @@ class Customers extends Component {
 
               <button
                 type="submit"
-                className="svs-submit-button"
-                disabled={
-                  saving ||
-                  !connectionReady ||
-                  !lookupComplete ||
-                  !form.customer_name.trim() ||
-                  form.mobile_number.length !== 10
-                }
+                className="registration-submit"
+                disabled={saving || checkingMobile}
               >
                 {saving ? (
                   <>
-                    <FiRefreshCw className="svs-button-spinner" />
+                    <FiRefreshCw className="spin" />
                     Saving...
-                  </>
-                ) : customerFound ? (
-                  <>
-                    <FiSave />
-                    Update Customer
                   </>
                 ) : (
                   <>
                     <FiSave />
-                    Save Customer
+                    {editingCustomer
+                      ? "Update Details"
+                      : "Register"}
+                    <FiArrowRight />
                   </>
                 )}
               </button>
             </div>
           </form>
 
-          {/* FOOTER */}
-
-          <footer className="svs-form-footer">
+          <footer className="registration-footer">
             <span>SVS JEWELLERY</span>
-            <i />
-            <span>Thank you for visiting us</span>
+            <span>Thank you for choosing us</span>
           </footer>
         </section>
       </main>
