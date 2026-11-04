@@ -26,19 +26,63 @@ const EMPTY_FORM = {
 class Customers extends Component {
   state = {
     form: { ...EMPTY_FORM },
+    connecting: false,
+    connectionProgress: 0,
     checking: false,
     saving: false,
     customerFound: false,
     lookupComplete: false,
+    editingCustomer: null,
     error: "",
     success: "",
   };
 
   lookupTimer = null;
+  progressTimer = null;
+  finishTimer = null;
+  requestId = 0;
 
   componentWillUnmount() {
     clearTimeout(this.lookupTimer);
+    clearInterval(this.progressTimer);
+    clearTimeout(this.finishTimer);
   }
+
+  startConnectionAnimation = () => {
+    clearInterval(this.progressTimer);
+    clearTimeout(this.finishTimer);
+
+    this.setState({
+      connecting: true,
+      checking: true,
+      connectionProgress: 0,
+    });
+
+    this.progressTimer = setInterval(() => {
+      this.setState((prev) => ({
+        connectionProgress: Math.min(
+          prev.connectionProgress + Math.ceil(Math.random() * 5),
+          92
+        ),
+      }));
+    }, 120);
+  };
+
+  finishConnectionAnimation = (callback) => {
+    clearInterval(this.progressTimer);
+
+    this.setState({ connectionProgress: 100 });
+
+    this.finishTimer = setTimeout(() => {
+      this.setState(
+        {
+          connecting: false,
+          checking: false,
+        },
+        callback
+      );
+    }, 450);
+  };
 
   handleChange = (event) => {
     const { name, value } = event.target;
@@ -48,25 +92,24 @@ class Customers extends Component {
 
       clearTimeout(this.lookupTimer);
 
+      // Invalidate any previous lookup response.
+      this.requestId += 1;
+
       this.setState(
-        (prev) => ({
+        {
           form: {
-            ...prev.form,
+            ...EMPTY_FORM,
             mobile_number: mobile,
-            ...(mobile.length !== 10
-              ? {
-                  customer_name: "",
-                  telugu_name: "",
-                  address: "",
-                }
-              : {}),
           },
           customerFound: false,
           lookupComplete: false,
+          editingCustomer: null,
+          connecting: false,
           checking: false,
+          connectionProgress: 0,
           error: "",
           success: "",
-        }),
+        },
         () => {
           if (mobile.length === 10) {
             this.lookupTimer = setTimeout(
@@ -93,80 +136,98 @@ class Customers extends Component {
   fetchCustomer = async (mobile) => {
     if (!/^[0-9]{10}$/.test(mobile)) return;
 
-    this.setState({
-      checking: true,
-      lookupComplete: false,
-      customerFound: false,
-      error: "",
-      success: "",
-    });
+    const currentRequest = ++this.requestId;
+
+    this.startConnectionAnimation();
 
     try {
       const response = await axios.get(
-        `${API_URL}/mobile/${mobile}`
+        `${API_URL}/mobile/${mobile}`,
+        { timeout: 30000 }
       );
 
-      // Supports common API response formats:
-      // { customer: {...} } or { success: true, customer: {...} }
-      const customer =
-        response.data?.customer ||
-        response.data?.data?.customer ||
-        response.data?.data ||
-        response.data;
+      if (currentRequest !== this.requestId) return;
 
-      if (
-        !customer ||
-        customer.success === false ||
-        !customer.id
-      ) {
-        this.setState({
-          checking: false,
-          lookupComplete: true,
-          customerFound: false,
-          form: {
-            ...EMPTY_FORM,
-            mobile_number: mobile,
-          },
+      const data = response.data;
+
+      const customer =
+        data?.customer ||
+        data?.data?.customer ||
+        data?.data ||
+        data;
+
+      if (!customer || customer.success === false || !customer.id) {
+        this.finishConnectionAnimation(() => {
+          if (currentRequest !== this.requestId) return;
+
+          this.setState({
+            lookupComplete: true,
+            customerFound: false,
+            editingCustomer: null,
+            form: {
+              ...EMPTY_FORM,
+              mobile_number: mobile,
+            },
+            error: "",
+          });
         });
+
         return;
       }
 
-      this.setState({
-        checking: false,
-        lookupComplete: true,
-        customerFound: true,
-        form: {
-          customer_name: customer.customer_name || "",
-          mobile_number: mobile,
-          telugu_name: customer.telugu_name || "",
-          address: customer.address || "",
-        },
-        editingCustomer: customer,
+      this.finishConnectionAnimation(() => {
+        if (currentRequest !== this.requestId) return;
+
+        this.setState({
+          lookupComplete: true,
+          customerFound: true,
+          editingCustomer: customer,
+          form: {
+            customer_name: customer.customer_name || "",
+            mobile_number: mobile,
+            telugu_name: customer.telugu_name || "",
+            address: customer.address || "",
+          },
+          error: "",
+        });
       });
     } catch (error) {
-      if (error.response?.status === 404) {
-        this.setState({
-          checking: false,
-          lookupComplete: true,
-          customerFound: false,
-          editingCustomer: null,
-          form: {
-            ...EMPTY_FORM,
-            mobile_number: mobile,
-          },
-        });
-        return;
-      }
+      if (currentRequest !== this.requestId) return;
 
       console.error("Customer lookup error:", error);
 
-      this.setState({
-        checking: false,
-        lookupComplete: false,
-        error:
-          error.response?.data?.message ||
-          "Unable to check customer details. Please try again.",
+      this.finishConnectionAnimation(() => {
+        if (currentRequest !== this.requestId) return;
+
+        if (error.response?.status === 404) {
+          this.setState({
+            lookupComplete: true,
+            customerFound: false,
+            editingCustomer: null,
+            form: {
+              ...EMPTY_FORM,
+              mobile_number: mobile,
+            },
+            error: "",
+          });
+        } else {
+          this.setState({
+            lookupComplete: false,
+            customerFound: false,
+            editingCustomer: null,
+            error:
+              error.response?.data?.message ||
+              "Unable to connect to SVS. Please try again.",
+          });
+        }
       });
+    }
+  };
+
+  retryLookup = () => {
+    const mobile = this.state.form.mobile_number;
+    if (mobile.length === 10) {
+      this.fetchCustomer(mobile);
     }
   };
 
@@ -178,9 +239,17 @@ class Customers extends Component {
       customerFound,
       editingCustomer,
       saving,
+      lookupComplete,
     } = this.state;
 
     if (saving) return;
+
+    if (!lookupComplete) {
+      this.setState({
+        error: "Please wait until customer verification is complete.",
+      });
+      return;
+    }
 
     if (!/^[0-9]{10}$/.test(form.mobile_number)) {
       this.setState({
@@ -228,7 +297,7 @@ class Customers extends Component {
         saving: false,
         success: customerFound
           ? "Customer details updated successfully!"
-          : "New customer added successfully!",
+          : "New customer registered successfully!",
       });
     } catch (error) {
       console.error("Save customer error:", error);
@@ -245,10 +314,16 @@ class Customers extends Component {
 
   resetForm = () => {
     clearTimeout(this.lookupTimer);
+    clearInterval(this.progressTimer);
+    clearTimeout(this.finishTimer);
+
+    this.requestId += 1;
 
     this.setState({
       form: { ...EMPTY_FORM },
+      connecting: false,
       checking: false,
+      connectionProgress: 0,
       saving: false,
       customerFound: false,
       lookupComplete: false,
@@ -258,10 +333,85 @@ class Customers extends Component {
     });
   };
 
+  renderConnectionScreen() {
+    const { connectionProgress } = this.state;
+
+    return (
+      <div className="svs-connection-screen">
+        <div className="svs-connect-orb svs-connect-orb-one" />
+        <div className="svs-connect-orb svs-connect-orb-two" />
+
+        <div className="svs-connection-content">
+          <div className="svs-loading-logo">
+            <div className="svs-logo-ring svs-ring-one" />
+            <div className="svs-logo-ring svs-ring-two" />
+            <div className="svs-logo-center">
+              <span>SVS</span>
+            </div>
+          </div>
+
+          <div className="svs-loading-brand">
+            <h1>SVS JEWELLERY</h1>
+            <span>EXCELLENCE IN EVERY DETAIL</span>
+          </div>
+
+          <div className="svs-loading-message">
+            <h2>
+              {connectionProgress >= 100
+                ? "Connected Successfully"
+                : "Connecting Securely"}
+            </h2>
+
+            <p>
+              {connectionProgress >= 100
+                ? "Customer information is ready"
+                : "Retrieving your customer information"}
+            </p>
+          </div>
+
+          <div className="svs-loading-progress">
+            <div className="svs-progress-heading">
+              <span>
+                <i className="svs-connection-dot" />
+                {connectionProgress >= 100
+                  ? "Connection complete"
+                  : "Establishing connection"}
+              </span>
+
+              <strong>{connectionProgress}%</strong>
+            </div>
+
+            <div className="svs-progress-bar">
+              <div
+                className="svs-progress-bar-fill"
+                style={{ width: `${connectionProgress}%` }}
+              />
+              <div
+                className="svs-progress-shimmer"
+                style={{ left: `${Math.max(connectionProgress - 10, 0)}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="svs-loading-dots">
+            <span />
+            <span />
+            <span />
+          </div>
+
+          <div className="svs-loading-footer">
+            A PREMIUM CUSTOMER EXPERIENCE
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   render() {
     const {
       form,
-      checking,
+      connecting,
+      connectionProgress,
       saving,
       customerFound,
       lookupComplete,
@@ -269,13 +419,16 @@ class Customers extends Component {
       success,
     } = this.state;
 
+    if (connecting) {
+      return this.renderConnectionScreen();
+    }
+
     return (
       <main className="svs-customer-screen">
         <div className="svs-background-glow svs-glow-one" />
         <div className="svs-background-glow svs-glow-two" />
 
         <section className="svs-customer-card">
-          {/* BRAND */}
           <header className="svs-form-header">
             <div className="svs-brand-logo">
               <span>SVS</span>
@@ -301,7 +454,6 @@ class Customers extends Component {
           </div>
 
           <form onSubmit={this.handleSubmit}>
-            {/* MOBILE NUMBER */}
             <div className="svs-field">
               <label htmlFor="mobile_number">
                 <FiPhone />
@@ -324,45 +476,27 @@ class Customers extends Component {
                   required
                 />
 
-                {checking && (
-                  <FiRefreshCw className="svs-input-spinner" />
+                {lookupComplete && customerFound && (
+                  <FiCheckCircle className="svs-input-success" />
                 )}
 
-                {!checking &&
-                  lookupComplete &&
-                  customerFound && (
-                    <FiCheckCircle className="svs-input-success" />
-                  )}
-
-                {!checking &&
-                  lookupComplete &&
-                  !customerFound && (
-                    <FiSearch className="svs-input-search" />
-                  )}
+                {lookupComplete && !customerFound && (
+                  <FiSearch className="svs-input-search" />
+                )}
               </div>
 
               <div className="svs-mobile-meta">
                 <span>
-                  {checking
-                    ? "Checking customer records..."
-                    : customerFound
+                  {customerFound
                     ? "Existing customer found"
                     : lookupComplete
-                    ? "New customer — please enter details"
+                    ? "New customer — enter details"
                     : "Enter all 10 digits to search automatically"}
                 </span>
 
                 <strong>{form.mobile_number.length}/10</strong>
               </div>
             </div>
-
-            {/* LOOKUP STATUS */}
-            {checking && (
-              <div className="svs-lookup-status">
-                <div className="svs-mini-loader" />
-                <span>Finding your customer details...</span>
-              </div>
-            )}
 
             {customerFound && lookupComplete && (
               <div className="svs-result-banner svs-found-banner">
@@ -373,7 +507,7 @@ class Customers extends Component {
               </div>
             )}
 
-            {!customerFound && lookupComplete && !checking && (
+            {!customerFound && lookupComplete && (
               <div className="svs-result-banner svs-new-banner">
                 <FiUser />
                 <span>
@@ -382,7 +516,6 @@ class Customers extends Component {
               </div>
             )}
 
-            {/* CUSTOMER NAME */}
             <div className="svs-field">
               <label htmlFor="customer_name">
                 <FiUser />
@@ -401,12 +534,11 @@ class Customers extends Component {
                   maxLength={150}
                   autoComplete="name"
                   required
-                  disabled={!lookupComplete || checking}
+                  disabled={!lookupComplete}
                 />
               </div>
             </div>
 
-            {/* TELUGU NAME */}
             <div className="svs-field">
               <label htmlFor="telugu_name">
                 <FiType />
@@ -423,12 +555,11 @@ class Customers extends Component {
                   value={form.telugu_name}
                   onChange={this.handleChange}
                   placeholder="తెలుగు పేరు"
-                  disabled={!lookupComplete || checking}
+                  disabled={!lookupComplete}
                 />
               </div>
             </div>
 
-            {/* ADDRESS */}
             <div className="svs-field">
               <label htmlFor="address">
                 <FiMapPin />
@@ -445,16 +576,24 @@ class Customers extends Component {
                   onChange={this.handleChange}
                   placeholder="Enter complete address"
                   rows={3}
-                  disabled={!lookupComplete || checking}
+                  disabled={!lookupComplete}
                 />
               </div>
             </div>
 
-            {/* MESSAGES */}
             {error && (
               <div className="svs-form-message svs-error-message">
                 <FiAlertCircle />
-                {error}
+                <span>{error}</span>
+                {form.mobile_number.length === 10 && (
+                  <button
+                    type="button"
+                    className="svs-retry-button"
+                    onClick={this.retryLookup}
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
             )}
 
@@ -465,7 +604,6 @@ class Customers extends Component {
               </div>
             )}
 
-            {/* BUTTONS */}
             <div className="svs-form-actions">
               <button
                 type="button"
@@ -481,7 +619,6 @@ class Customers extends Component {
                 className="svs-submit-button"
                 disabled={
                   saving ||
-                  checking ||
                   !lookupComplete ||
                   !form.customer_name.trim() ||
                   form.mobile_number.length !== 10
