@@ -13,7 +13,7 @@ import {
   FiAlertCircle,
   FiWifi,
   FiArrowRight,
-  FiSparkles,
+  FiStar,
   FiEdit3,
   FiShield,
   FiGlobe,
@@ -706,7 +706,7 @@ class Customers extends Component {
 
     return (
       <span className="telugu-status idle">
-        <FiSparkles /> Automatic
+        <FiStar /> Automatic
       </span>
     );
   };
@@ -868,7 +868,7 @@ class Customers extends Component {
               </div>
 
               <div className="registration-input telugu-input">
-                <FiSparkles />
+                <FiStar />
 
                 <input
                   id="telugu_name"
@@ -887,7 +887,7 @@ class Customers extends Component {
               </div>
 
               <div className="telugu-helper">
-                <FiSparkles />
+                <FiStar />
 
                 <span>
                   {transliterationStatus === "success"
