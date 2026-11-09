@@ -1,5 +1,7 @@
 import React, { Component } from "react";
 import axios from "axios";
+import { getTransliterateSuggestions } from "@ai4bharat/indic-transliterate";
+
 import {
   FiUser,
   FiPhone,
@@ -11,6 +13,10 @@ import {
   FiAlertCircle,
   FiWifi,
   FiArrowRight,
+  FiSparkles,
+  FiEdit3,
+  FiShield,
+  FiGlobe,
 } from "react-icons/fi";
 
 import "./Customers.css";
@@ -38,12 +44,21 @@ class Customers extends Component {
     saving: false,
     error: "",
     success: "",
+
+    transliterating: false,
+    transliterationStatus: "idle",
+    teluguManuallyEdited: false,
+    teluguLocked: false,
   };
 
   connectionTimer = null;
   lookupTimer = null;
+  transliterationTimer = null;
+  resetTimer = null;
+
   connectionRequest = false;
   requestId = 0;
+  transliterationId = 0;
   mounted = false;
 
   componentDidMount() {
@@ -53,19 +68,23 @@ class Customers extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+
     clearInterval(this.connectionTimer);
     clearTimeout(this.lookupTimer);
+    clearTimeout(this.transliterationTimer);
+    clearTimeout(this.resetTimer);
+
     this.requestId += 1;
+    this.transliterationId += 1;
   }
 
-  // --------------------------------------------------
-  // INITIAL BACKEND CONNECTION
-  // --------------------------------------------------
+  // BACKEND CONNECTION
 
   connectToApi = async () => {
     if (this.connectionRequest) return;
 
     this.connectionRequest = true;
+
     clearInterval(this.connectionTimer);
 
     this.setState({
@@ -77,7 +96,10 @@ class Customers extends Component {
     let progress = 0;
 
     this.connectionTimer = setInterval(() => {
-      progress = Math.min(progress + Math.floor(Math.random() * 8) + 3, 90);
+      progress = Math.min(
+        progress + Math.floor(Math.random() * 8) + 3,
+        90
+      );
 
       if (this.mounted) {
         this.setState({ connectionProgress: progress });
@@ -89,9 +111,11 @@ class Customers extends Component {
 
       clearInterval(this.connectionTimer);
 
+      if (!this.mounted) return;
+
       this.setState({ connectionProgress: 100 });
 
-      setTimeout(() => {
+      this.connectionTimer = setTimeout(() => {
         if (!this.mounted) return;
 
         this.setState({
@@ -117,9 +141,135 @@ class Customers extends Component {
     }
   };
 
-  // --------------------------------------------------
-  // MOBILE NUMBER CHANGE
-  // --------------------------------------------------
+  // TELUGU TRANSLITERATION
+
+  getTeluguSuggestion = async (word) => {
+    try {
+      const suggestions = await getTransliterateSuggestions(word, {
+        numOptions: 1,
+        showCurrentWordAsLastSuggestion: false,
+        lang: "te",
+      });
+
+      return Array.isArray(suggestions)
+        ? suggestions[0] || ""
+        : "";
+    } catch (error) {
+      console.warn("Telugu transliteration failed:", error);
+      return "";
+    }
+  };
+
+  transliterateName = async (englishName) => {
+    const cleanName = englishName.trim();
+
+    if (!cleanName) {
+      this.setState((prev) => ({
+        form: {
+          ...prev.form,
+          telugu_name: "",
+        },
+        transliterationStatus: "idle",
+        transliterating: false,
+      }));
+
+      return;
+    }
+
+    const currentId = ++this.transliterationId;
+
+    this.setState({
+      transliterating: true,
+      transliterationStatus: "loading",
+    });
+
+    try {
+      const words = cleanName.split(/\s+/);
+
+      const convertedWords = await Promise.all(
+        words.map(async (word) => {
+          if (/^[A-Z]\.?$/i.test(word)) {
+            return word;
+          }
+
+          const converted = await this.getTeluguSuggestion(word);
+
+          return converted || word;
+        })
+      );
+
+      if (
+        !this.mounted ||
+        currentId !== this.transliterationId
+      ) {
+        return;
+      }
+
+      const teluguName = convertedWords.join(" ");
+
+      this.setState((prev) => {
+        if (
+          prev.teluguManuallyEdited ||
+          prev.teluguLocked
+        ) {
+          return {
+            transliterating: false,
+            transliterationStatus: "idle",
+          };
+        }
+
+        return {
+          form: {
+            ...prev.form,
+            telugu_name: teluguName,
+          },
+          transliterating: false,
+          transliterationStatus: "success",
+        };
+      });
+    } catch (error) {
+      if (
+        !this.mounted ||
+        currentId !== this.transliterationId
+      ) {
+        return;
+      }
+
+      this.setState({
+        transliterating: false,
+        transliterationStatus: "error",
+      });
+    }
+  };
+
+  scheduleTransliteration = (name) => {
+    clearTimeout(this.transliterationTimer);
+
+    this.transliterationId += 1;
+
+    if (!name.trim()) {
+      this.setState((prev) => ({
+        form: {
+          ...prev.form,
+          telugu_name: "",
+        },
+        transliterating: false,
+        transliterationStatus: "idle",
+      }));
+
+      return;
+    }
+
+    this.setState({
+      transliterationStatus: "waiting",
+    });
+
+    this.transliterationTimer = setTimeout(() => {
+      this.transliterateName(name);
+    }, 650);
+  };
+
+  // INPUT HANDLING
 
   handleChange = (event) => {
     const { name, value } = event.target;
@@ -128,8 +278,6 @@ class Customers extends Component {
       const mobile = value.replace(/\D/g, "").slice(0, 10);
 
       clearTimeout(this.lookupTimer);
-
-      // Invalidate previous lookup requests
       this.requestId += 1;
 
       this.setState(
@@ -145,9 +293,16 @@ class Customers extends Component {
                 }
               : {}),
           },
+
           editingCustomer: null,
           lookupComplete: false,
           checkingMobile: mobile.length === 10,
+
+          teluguManuallyEdited: false,
+          teluguLocked: false,
+          transliterationStatus: "idle",
+          transliterating: false,
+
           error: "",
           success: "",
         }),
@@ -165,6 +320,50 @@ class Customers extends Component {
       return;
     }
 
+    if (name === "customer_name") {
+      this.setState(
+        (prev) => ({
+          form: {
+            ...prev.form,
+            customer_name: value,
+          },
+
+          teluguManuallyEdited: false,
+          teluguLocked: false,
+
+          error: "",
+          success: "",
+        }),
+        () => {
+          this.scheduleTransliteration(value);
+        }
+      );
+
+      return;
+    }
+
+    if (name === "telugu_name") {
+      clearTimeout(this.transliterationTimer);
+      this.transliterationId += 1;
+
+      this.setState((prev) => ({
+        form: {
+          ...prev.form,
+          telugu_name: value,
+        },
+
+        teluguManuallyEdited: true,
+        teluguLocked: false,
+        transliterationStatus: "manual",
+        transliterating: false,
+
+        error: "",
+        success: "",
+      }));
+
+      return;
+    }
+
     this.setState((prev) => ({
       form: {
         ...prev.form,
@@ -175,10 +374,7 @@ class Customers extends Component {
     }));
   };
 
-  // --------------------------------------------------
-  // LOOKUP CUSTOMER BY MOBILE
-  // No full-screen animation here
-  // --------------------------------------------------
+  // MOBILE LOOKUP
 
   fetchCustomer = async (mobile) => {
     const currentRequest = ++this.requestId;
@@ -195,7 +391,12 @@ class Customers extends Component {
         { timeout: 15000 }
       );
 
-      if (!this.mounted || currentRequest !== this.requestId) return;
+      if (
+        !this.mounted ||
+        currentRequest !== this.requestId
+      ) {
+        return;
+      }
 
       const customer =
         response.data?.customer ||
@@ -208,30 +409,51 @@ class Customers extends Component {
           checkingMobile: false,
           lookupComplete: true,
           editingCustomer: null,
+          teluguLocked: false,
+          teluguManuallyEdited: false,
+          success: "New customer. Please enter the details.",
         });
+
         return;
       }
+
+      clearTimeout(this.transliterationTimer);
+      this.transliterationId += 1;
 
       this.setState({
         checkingMobile: false,
         lookupComplete: true,
         editingCustomer: customer,
+
         form: {
           customer_name: customer.customer_name || "",
           mobile_number: mobile,
           telugu_name: customer.telugu_name || "",
           address: customer.address || "",
         },
+
+        teluguLocked: true,
+        teluguManuallyEdited: false,
+        transliterating: false,
+        transliterationStatus: "idle",
+
         success: "Existing customer found.",
       });
     } catch (error) {
-      if (!this.mounted || currentRequest !== this.requestId) return;
+      if (
+        !this.mounted ||
+        currentRequest !== this.requestId
+      ) {
+        return;
+      }
 
       if (error.response?.status === 404) {
         this.setState({
           checkingMobile: false,
           lookupComplete: true,
           editingCustomer: null,
+          teluguLocked: false,
+          teluguManuallyEdited: false,
           success: "New customer. Please enter the details.",
         });
       } else {
@@ -246,9 +468,7 @@ class Customers extends Component {
     }
   };
 
-  // --------------------------------------------------
-  // SUBMIT CUSTOMER
-  // --------------------------------------------------
+  // SAVE CUSTOMER
 
   handleSubmit = async (event) => {
     event.preventDefault();
@@ -265,13 +485,25 @@ class Customers extends Component {
     const { editingCustomer } = this.state;
 
     if (!customer_name.trim()) {
-      this.setState({ error: "Please enter customer name." });
+      this.setState({
+        error: "Please enter customer name.",
+      });
       return;
     }
 
     if (!/^[0-9]{10}$/.test(mobile_number)) {
       this.setState({
         error: "Please enter a valid 10-digit mobile number.",
+      });
+      return;
+    }
+
+    if (
+      this.state.transliterating ||
+      this.state.transliterationStatus === "waiting"
+    ) {
+      this.setState({
+        error: "Please wait for Telugu name conversion.",
       });
       return;
     }
@@ -309,23 +541,10 @@ class Customers extends Component {
         error: "",
       });
 
-      setTimeout(() => {
+      this.resetTimer = setTimeout(() => {
         if (!this.mounted) return;
-
-        this.setState({
-          form: {
-            customer_name: "",
-            mobile_number: "",
-            telugu_name: "",
-            address: "",
-          },
-          editingCustomer: null,
-          lookupComplete: false,
-          checkingMobile: false,
-          success: "",
-          error: "",
-        });
-      }, 1400);
+        this.resetForm();
+      }, 1600);
     } catch (error) {
       if (!this.mounted) return;
 
@@ -338,13 +557,15 @@ class Customers extends Component {
     }
   };
 
-  // --------------------------------------------------
   // RESET FORM
-  // --------------------------------------------------
 
   resetForm = () => {
     clearTimeout(this.lookupTimer);
+    clearTimeout(this.transliterationTimer);
+    clearTimeout(this.resetTimer);
+
     this.requestId += 1;
+    this.transliterationId += 1;
 
     this.setState({
       form: {
@@ -353,20 +574,29 @@ class Customers extends Component {
         telugu_name: "",
         address: "",
       },
+
       editingCustomer: null,
       lookupComplete: false,
       checkingMobile: false,
+
+      saving: false,
       error: "",
       success: "",
+
+      transliterating: false,
+      transliterationStatus: "idle",
+      teluguManuallyEdited: false,
+      teluguLocked: false,
     });
   };
 
-  // --------------------------------------------------
   // CONNECTION SCREEN
-  // --------------------------------------------------
 
   renderConnectionScreen = () => {
-    const { connectionProgress, connectionError } = this.state;
+    const {
+      connectionProgress,
+      connectionError,
+    } = this.state;
 
     return (
       <div className="svs-connection-screen">
@@ -380,7 +610,10 @@ class Customers extends Component {
             </div>
           </div>
 
-          <div className="connection-brand">SVS JEWELLERY</div>
+          <div className="connection-brand">
+            SVS JEWELLERY
+          </div>
+
           <div className="connection-subtitle">
             A tradition of trust & elegance
           </div>
@@ -388,7 +621,9 @@ class Customers extends Component {
           <div className="connection-progress-track">
             <div
               className="connection-progress-fill"
-              style={{ width: `${connectionProgress}%` }}
+              style={{
+                width: `${connectionProgress}%`,
+              }}
             />
           </div>
 
@@ -404,8 +639,10 @@ class Customers extends Component {
           {connectionError && (
             <div className="connection-error">
               <p>{connectionError}</p>
+
               <button onClick={this.connectToApi}>
-                <FiRefreshCw /> Retry connection
+                <FiRefreshCw />
+                Retry connection
               </button>
             </div>
           )}
@@ -414,9 +651,67 @@ class Customers extends Component {
     );
   };
 
-  // --------------------------------------------------
-  // MAIN FORM
-  // --------------------------------------------------
+  // TELUGU STATUS
+
+  renderTeluguStatus = () => {
+    const {
+      transliterating,
+      transliterationStatus,
+      teluguManuallyEdited,
+      teluguLocked,
+    } = this.state;
+
+    if (teluguLocked) {
+      return (
+        <span className="telugu-status saved">
+          <FiShield /> Saved spelling
+        </span>
+      );
+    }
+
+    if (teluguManuallyEdited) {
+      return (
+        <span className="telugu-status manual">
+          <FiEdit3 /> Manually edited
+        </span>
+      );
+    }
+
+    if (
+      transliterating ||
+      transliterationStatus === "waiting"
+    ) {
+      return (
+        <span className="telugu-status loading">
+          <FiRefreshCw className="spin" /> Converting...
+        </span>
+      );
+    }
+
+    if (transliterationStatus === "success") {
+      return (
+        <span className="telugu-status converted">
+          <FiCheckCircle /> Auto converted
+        </span>
+      );
+    }
+
+    if (transliterationStatus === "error") {
+      return (
+        <span className="telugu-status manual">
+          Enter Telugu manually
+        </span>
+      );
+    }
+
+    return (
+      <span className="telugu-status idle">
+        <FiSparkles /> Automatic
+      </span>
+    );
+  };
+
+  // MAIN PAGE
 
   render() {
     const {
@@ -427,6 +722,8 @@ class Customers extends Component {
       saving,
       error,
       success,
+      transliterating,
+      transliterationStatus,
     } = this.state;
 
     if (connecting) {
@@ -440,6 +737,7 @@ class Customers extends Component {
         <div className="customer-bg-grid" />
 
         <section className="registration-card">
+
           <header className="registration-header">
             <div className="registration-logo">
               <span>SVS</span>
@@ -461,15 +759,20 @@ class Customers extends Component {
 
           <div className="registration-heading">
             <div>
+              <span className="eyebrow">
+                <FiGlobe /> SVS CUSTOMER PORTAL
+              </span>
+
               <h2>
                 {editingCustomer
                   ? "Welcome Back!"
                   : "Your Details"}
               </h2>
+
               <p>
                 {editingCustomer
-                  ? "We found your existing customer profile."
-                  : "Please enter your details to continue."}
+                  ? "Your existing customer profile was found."
+                  : "Enter your details to register."}
               </p>
             </div>
 
@@ -484,10 +787,14 @@ class Customers extends Component {
             className="customer-registration-form"
             onSubmit={this.handleSubmit}
           >
+
+            {/* MOBILE NUMBER */}
+
             <div className="registration-field">
               <label htmlFor="mobile_number">
                 <FiPhone />
-                Mobile Number <span className="required">*</span>
+                Mobile Number
+                <span className="required">*</span>
               </label>
 
               <div className="registration-input mobile-input">
@@ -517,15 +824,18 @@ class Customers extends Component {
 
               <small className="field-hint">
                 {checkingMobile
-                  ? "Checking customer details..."
-                  : "Enter your mobile number to check your profile."}
+                  ? "Searching customer records..."
+                  : "Your existing profile will be checked automatically."}
               </small>
             </div>
+
+            {/* ENGLISH NAME */}
 
             <div className="registration-field">
               <label htmlFor="customer_name">
                 <FiUser />
-                Customer Name <span className="required">*</span>
+                Customer Name
+                <span className="required">*</span>
               </label>
 
               <div className="registration-input">
@@ -544,15 +854,21 @@ class Customers extends Component {
               </div>
             </div>
 
-            <div className="registration-field">
-              <label htmlFor="telugu_name">
-                <FiType />
-                Telugu Name
-                <span className="optional">Optional</span>
-              </label>
+            {/* TELUGU NAME */}
 
-              <div className="registration-input">
-                <FiType />
+            <div className="registration-field telugu-field">
+              <div className="telugu-label-row">
+                <label htmlFor="telugu_name">
+                  <FiType />
+                  Telugu Name
+                  <span className="optional">Editable</span>
+                </label>
+
+                {this.renderTeluguStatus()}
+              </div>
+
+              <div className="registration-input telugu-input">
+                <FiSparkles />
 
                 <input
                   id="telugu_name"
@@ -562,9 +878,28 @@ class Customers extends Component {
                   onChange={this.handleChange}
                   placeholder="తెలుగు పేరు"
                   autoComplete="off"
+                  lang="te"
                 />
+
+                {transliterating && (
+                  <FiRefreshCw className="spin conversion-icon" />
+                )}
+              </div>
+
+              <div className="telugu-helper">
+                <FiSparkles />
+
+                <span>
+                  {transliterationStatus === "success"
+                    ? "Automatically converted. You can edit the spelling."
+                    : transliterationStatus === "manual"
+                    ? "Your corrected Telugu spelling will be saved."
+                    : "Type your English name above. Telugu appears automatically."}
+                </span>
               </div>
             </div>
+
+            {/* ADDRESS */}
 
             <div className="registration-field">
               <label htmlFor="address">
@@ -588,6 +923,8 @@ class Customers extends Component {
               </div>
             </div>
 
+            {/* MESSAGES */}
+
             {error && (
               <div className="registration-message message-error">
                 <FiAlertCircle />
@@ -602,6 +939,8 @@ class Customers extends Component {
               </div>
             )}
 
+            {/* BUTTONS */}
+
             <div className="registration-actions">
               <button
                 type="button"
@@ -609,13 +948,19 @@ class Customers extends Component {
                 onClick={this.resetForm}
                 disabled={saving}
               >
+                <FiRefreshCw />
                 Reset
               </button>
 
               <button
                 type="submit"
                 className="registration-submit"
-                disabled={saving || checkingMobile}
+                disabled={
+                  saving ||
+                  checkingMobile ||
+                  transliterating ||
+                  transliterationStatus === "waiting"
+                }
               >
                 {saving ? (
                   <>
@@ -639,6 +984,7 @@ class Customers extends Component {
             <span>SVS JEWELLERY</span>
             <span>Thank you for choosing us</span>
           </footer>
+
         </section>
       </main>
     );

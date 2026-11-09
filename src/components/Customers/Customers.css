@@ -1,6 +1,18 @@
-/* =====================================================
-   GLOBAL RESET — FIXED FULL SCREEN
-===================================================== */
+/* =========================================
+   SVS LUXURY CUSTOMER REGISTRATION
+========================================= */
+
+:root {
+  --gold: #b8860b;
+  --gold-dark: #946908;
+  --gold-light: #f1d48b;
+  --cream: #fffaf0;
+  --ink: #342817;
+  --muted: #938570;
+  --border: #eee4d0;
+  --green: #26945c;
+  --red: #d94b4b;
+}
 
 * {
   box-sizing: border-box;
@@ -18,8 +30,8 @@ body,
 }
 
 body {
-  overscroll-behavior: none;
   font-family: "Segoe UI", Arial, sans-serif;
+  overscroll-behavior: none;
 }
 
 button,
@@ -27,33 +39,23 @@ input {
   font: inherit;
 }
 
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .customers-page,
 .svs-connection-screen {
   position: fixed;
   inset: 0;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-  box-sizing: border-box;
 }
 
-/* =====================================================
-   COLOUR THEME
-===================================================== */
-
-:root {
-  --gold: #b8860b;
-  --gold-light: #e5bd59;
-  --gold-dark: #8c6508;
-  --cream: #fffaf0;
-  --text: #302719;
-  --muted: #958873;
-}
-
-/* =====================================================
-   MAIN BACKGROUND
-===================================================== */
+/* =========================================
+   BACKGROUND
+========================================= */
 
 .customers-page {
   display: flex;
@@ -63,20 +65,20 @@ input {
 
   background:
     radial-gradient(
-      circle at 10% 10%,
-      rgba(232, 190, 89, 0.2),
-      transparent 35%
+      ellipse at 10% 10%,
+      rgba(236, 195, 99, 0.22),
+      transparent 40%
     ),
     radial-gradient(
-      circle at 90% 90%,
-      rgba(184, 134, 11, 0.12),
-      transparent 35%
+      ellipse at 90% 90%,
+      rgba(184, 134, 11, 0.13),
+      transparent 40%
     ),
     linear-gradient(
       135deg,
       #fffdf8,
-      #fff8e9,
-      #fffdf8
+      #fff7e8,
+      #fffdf9
     );
 }
 
@@ -96,39 +98,39 @@ input {
       transparent 1px
     );
 
-  background-size: 36px 36px;
+  background-size: 35px 35px;
 }
 
 .customer-bg-orb {
   position: absolute;
   border-radius: 50%;
+  filter: blur(5px);
   pointer-events: none;
-  filter: blur(4px);
   animation: floatOrb 9s ease-in-out infinite;
 }
 
 .orb-one {
-  width: 280px;
-  height: 280px;
-  top: -130px;
-  right: -80px;
+  width: 300px;
+  height: 300px;
+  top: -140px;
+  right: -90px;
 
   background: radial-gradient(
     circle,
-    rgba(225, 180, 65, 0.2),
+    rgba(238, 194, 91, 0.23),
     transparent 70%
   );
 }
 
 .orb-two {
-  width: 300px;
-  height: 300px;
-  bottom: -150px;
-  left: -100px;
+  width: 330px;
+  height: 330px;
+  bottom: -160px;
+  left: -110px;
 
   background: radial-gradient(
     circle,
-    rgba(225, 180, 65, 0.18),
+    rgba(184, 134, 11, 0.15),
     transparent 70%
   );
 
@@ -142,13 +144,13 @@ input {
   }
 
   50% {
-    transform: translate(18px, -18px);
+    transform: translate(17px, -18px);
   }
 }
 
-/* =====================================================
-   REGISTRATION CARD
-===================================================== */
+/* =========================================
+   MAIN CARD
+========================================= */
 
 .registration-card {
   position: relative;
@@ -156,29 +158,53 @@ input {
 
   width: min(100%, 520px);
   max-height: 100%;
-  padding: 28px 34px 18px;
 
   display: flex;
   flex-direction: column;
 
-  border: 1px solid rgba(184, 134, 11, 0.2);
-  border-radius: 26px;
+  padding: 27px 32px 17px;
 
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  overflow: hidden;
+
+  border: 1px solid rgba(184, 134, 11, 0.23);
+  border-radius: 27px;
+
+  background: rgba(255, 255, 255, 0.94);
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 
   box-shadow:
-    0 25px 70px rgba(90, 65, 10, 0.12),
-    0 4px 15px rgba(90, 65, 10, 0.05);
+    0 25px 70px rgba(75, 54, 15, 0.12),
+    0 5px 20px rgba(75, 54, 15, 0.04);
 
-  animation: cardAppear 0.65s ease both;
+  animation: cardAppear 0.65s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.registration-card::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+
+  height: 2px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #d9ad45,
+    #f6df9c,
+    #d9ad45,
+    transparent
+  );
 }
 
 @keyframes cardAppear {
   from {
     opacity: 0;
-    transform: translateY(22px) scale(0.98);
+    transform: translateY(22px) scale(.97);
   }
 
   to {
@@ -187,9 +213,9 @@ input {
   }
 }
 
-/* =====================================================
+/* =========================================
    HEADER
-===================================================== */
+========================================= */
 
 .registration-header {
   display: flex;
@@ -198,8 +224,10 @@ input {
 }
 
 .registration-logo {
-  width: 65px;
-  height: 65px;
+  position: relative;
+
+  width: 62px;
+  height: 62px;
   flex-shrink: 0;
 
   display: flex;
@@ -209,26 +237,38 @@ input {
   border-radius: 19px;
 
   background: linear-gradient(
-    145deg,
-    #8e6507,
-    #d7a92f,
-    #f4d77e
+    140deg,
+    #936608,
+    #d2a436,
+    #f1d47e
   );
 
   box-shadow:
-    0 10px 24px rgba(184, 134, 11, 0.24),
-    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    0 9px 22px rgba(184, 134, 11, .24),
+    inset 0 1px 2px rgba(255,255,255,.6);
 
   animation: logoFloat 4s ease-in-out infinite;
 }
 
+.registration-logo::after {
+  content: "";
+
+  position: absolute;
+  inset: 5px;
+
+  border: 1px solid rgba(255,255,255,.4);
+  border-radius: 15px;
+}
+
 .registration-logo span {
+  position: relative;
+  z-index: 1;
+
   color: white;
   font-family: Georgia, serif;
-  font-size: 25px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 900;
   letter-spacing: 1px;
-  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes logoFloat {
@@ -260,18 +300,18 @@ input {
 .registration-brand h1 {
   margin: 0;
 
-  color: #352710;
+  color: var(--ink);
   font-family: Georgia, serif;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: 0.7px;
+  letter-spacing: .6px;
 }
 
 .registration-brand p {
   margin: 4px 0 0;
 
-  color: #9b8d75;
-  font-size: 12px;
+  color: var(--muted);
+  font-size: 11px;
 }
 
 .secure-indicator {
@@ -280,39 +320,51 @@ input {
   gap: 6px;
 
   padding: 7px 10px;
+
   border-radius: 30px;
 
-  color: #43835c;
-  background: #eff9f0;
+  color: #32834e;
+  background: #edf9f0;
 
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 750;
   white-space: nowrap;
 }
 
 .secure-dot {
   width: 7px;
   height: 7px;
+
   border-radius: 50%;
-  background: #4ca76b;
-  box-shadow: 0 0 0 4px rgba(76, 167, 107, 0.12);
+
+  background: #3eac68;
+
+  box-shadow: 0 0 0 4px rgba(62,172,104,.12);
+
+  animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+  50% {
+    box-shadow: 0 0 0 7px rgba(62,172,104,0);
+  }
 }
 
 .registration-divider {
   height: 1px;
-  margin: 20px 0;
+  margin: 19px 0;
 
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(184, 134, 11, 0.3),
+    rgba(184,134,11,.35),
     transparent
   );
 }
 
-/* =====================================================
+/* =========================================
    FORM HEADING
-===================================================== */
+========================================= */
 
 .registration-heading {
   display: flex;
@@ -323,19 +375,32 @@ input {
   margin-bottom: 18px;
 }
 
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  margin-bottom: 7px;
+
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
 .registration-heading h2 {
   margin: 0;
 
-  color: #332817;
-  font-size: 21px;
+  color: #342817;
+  font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.4px;
+  letter-spacing: -.5px;
 }
 
 .registration-heading p {
   margin: 5px 0 0;
 
-  color: #978a75;
+  color: #958873;
   font-size: 11px;
 }
 
@@ -345,9 +410,10 @@ input {
   gap: 5px;
 
   padding: 7px 10px;
+
   border-radius: 30px;
 
-  color: #388452;
+  color: #31804c;
   background: #edf8ef;
 
   font-size: 10px;
@@ -355,14 +421,15 @@ input {
   white-space: nowrap;
 }
 
-/* =====================================================
+/* =========================================
    FORM
-===================================================== */
+========================================= */
 
 .customer-registration-form {
   display: flex;
   flex-direction: column;
   gap: 13px;
+
   min-height: 0;
 }
 
@@ -377,28 +444,32 @@ input {
 
   margin-bottom: 7px;
 
-  color: #594a30;
+  color: #59482e;
   font-size: 12px;
   font-weight: 750;
 }
 
-.registration-field label svg {
+.registration-field label > svg {
   color: var(--gold);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .required {
   color: #d34d4d;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .optional {
   margin-left: auto;
 
-  color: #a39782;
+  color: #9d917c;
   font-size: 10px;
   font-weight: 500;
 }
+
+/* =========================================
+   INPUTS
+========================================= */
 
 .registration-input {
   width: 100%;
@@ -410,22 +481,29 @@ input {
 
   padding: 0 14px;
 
-  border: 1px solid #eee5d2;
+  border: 1px solid #eee5d3;
   border-radius: 12px;
 
-  color: #aa832d;
+  color: #ae842b;
   background: #fffefa;
 
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
+    border-color .22s ease,
+    box-shadow .22s ease,
+    background .22s ease,
+    transform .22s ease;
 }
 
 .registration-input:focus-within {
-  border-color: #c59b38;
-  background: #fff;
-  box-shadow: 0 0 0 4px rgba(184, 134, 11, 0.09);
+  border-color: #c49a39;
+
+  background: white;
+
+  box-shadow:
+    0 0 0 4px rgba(184,134,11,.09),
+    0 5px 15px rgba(184,134,11,.05);
+
+  transform: translateY(-1px);
 }
 
 .registration-input > svg {
@@ -448,6 +526,8 @@ input {
 
   font-size: 16px;
   font-weight: 550;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .registration-input input::placeholder {
@@ -486,21 +566,160 @@ input {
   font-size: 9px;
 }
 
-/* =====================================================
+/* =========================================
+   TELUGU CONVERSION
+========================================= */
+
+.telugu-field {
+  position: relative;
+
+  padding: 12px;
+
+  border: 1px solid rgba(184,134,11,.18);
+  border-radius: 15px;
+
+  background: linear-gradient(
+    135deg,
+    #fffaf0,
+    #fffdf8,
+    #fff7e8
+  );
+
+  animation: teluguFieldAppear .4s ease both;
+}
+
+@keyframes teluguFieldAppear {
+  from {
+    opacity: .6;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.telugu-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+
+  margin-bottom: 7px;
+}
+
+.telugu-label-row label {
+  margin: 0;
+}
+
+.telugu-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  padding: 5px 8px;
+
+  border-radius: 30px;
+
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.telugu-status svg {
+  font-size: 11px;
+}
+
+.telugu-status.idle {
+  color: #94701b;
+  background: #f8efd9;
+}
+
+.telugu-status.loading {
+  color: #a16f0a;
+  background: #fff0c9;
+}
+
+.telugu-status.converted,
+.telugu-status.saved {
+  color: #28804b;
+  background: #e8f7eb;
+}
+
+.telugu-status.manual {
+  color: #7258a3;
+  background: #f1eafd;
+}
+
+.telugu-input {
+  height: 51px;
+
+  border-color: #e6d7b5;
+  background: white;
+}
+
+.telugu-input:focus-within {
+  border-color: #b88b2b;
+}
+
+.telugu-input input {
+  font-family:
+    "Noto Sans Telugu",
+    "Gautami",
+    "Nirmala UI",
+    sans-serif;
+
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.telugu-input input::placeholder {
+  font-size: 15px;
+}
+
+.conversion-icon {
+  flex-shrink: 0;
+  color: var(--gold);
+}
+
+.telugu-helper {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  margin-top: 8px;
+
+  color: #968363;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.telugu-helper svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+
+  color: #bd9130;
+}
+
+/* =========================================
    MESSAGES
-===================================================== */
+========================================= */
 
 .registration-message {
   display: flex;
   align-items: center;
   gap: 8px;
 
-  padding: 9px 12px;
+  padding: 10px 12px;
+
   border-radius: 10px;
 
   font-size: 11px;
   font-weight: 650;
-  animation: messageIn 0.25s ease;
+
+  animation: messageIn .3s ease;
 }
 
 @keyframes messageIn {
@@ -527,20 +746,20 @@ input {
   background: #f1fbf3;
 }
 
-/* =====================================================
-   BUTTONS
-===================================================== */
+/* =========================================
+   ACTION BUTTONS
+========================================= */
 
 .registration-actions {
   display: grid;
-  grid-template-columns: 0.75fr 1.6fr;
+  grid-template-columns: .75fr 1.6fr;
   gap: 10px;
 
   margin-top: 5px;
 }
 
 .registration-actions button {
-  height: 47px;
+  height: 48px;
 
   display: flex;
   align-items: center;
@@ -554,23 +773,25 @@ input {
   font-weight: 750;
 
   cursor: pointer;
+
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    opacity 0.2s ease;
+    transform .2s ease,
+    box-shadow .2s ease,
+    opacity .2s ease;
 }
 
 .registration-actions button:active {
-  transform: scale(0.97);
+  transform: scale(.96);
 }
 
 .registration-actions button:disabled {
   cursor: not-allowed;
-  opacity: 0.65;
+  opacity: .6;
 }
 
 .registration-reset {
   color: #796b54;
+
   border: 1px solid #e9dfcd !important;
   background: #fffdf8;
 }
@@ -583,23 +804,23 @@ input {
   color: white;
 
   background: linear-gradient(
-    120deg,
-    #9b700a,
-    #c99b2c,
+    115deg,
+    #916508,
+    #c59729,
     #e0b84e
   );
 
-  box-shadow: 0 8px 18px rgba(184, 134, 11, 0.2);
+  box-shadow: 0 8px 20px rgba(184,134,11,.22);
 }
 
-.registration-submit:hover {
-  box-shadow: 0 12px 25px rgba(184, 134, 11, 0.3);
+.registration-submit:hover:not(:disabled) {
+  box-shadow: 0 12px 27px rgba(184,134,11,.32);
   transform: translateY(-2px);
 }
 
-/* =====================================================
+/* =========================================
    FOOTER
-===================================================== */
+========================================= */
 
 .registration-footer {
   display: flex;
@@ -607,10 +828,10 @@ input {
   justify-content: space-between;
   gap: 10px;
 
-  margin-top: 18px;
-  padding-top: 13px;
+  margin-top: 17px;
+  padding-top: 12px;
 
-  border-top: 1px solid rgba(184, 134, 11, 0.1);
+  border-top: 1px solid rgba(184,134,11,.12);
 
   color: #aa9e89;
   font-size: 9px;
@@ -618,13 +839,13 @@ input {
 
 .registration-footer span:first-child {
   color: #a17a1d;
-  font-weight: 800;
+  font-weight: 850;
   letter-spacing: 1.5px;
 }
 
-/* =====================================================
+/* =========================================
    CONNECTION SCREEN
-===================================================== */
+========================================= */
 
 .svs-connection-screen {
   display: flex;
@@ -634,7 +855,7 @@ input {
   background:
     radial-gradient(
       circle at center,
-      rgba(230, 195, 105, 0.2),
+      rgba(230,195,105,.2),
       transparent 45%
     ),
     linear-gradient(
@@ -647,24 +868,30 @@ input {
 
 .connection-glow {
   position: absolute;
+
   width: 320px;
   height: 320px;
+
   border-radius: 50%;
   filter: blur(50px);
+
   pointer-events: none;
+
   animation: connectionGlow 5s ease-in-out infinite;
 }
 
 .connection-glow-one {
   top: -140px;
   left: -100px;
-  background: rgba(222, 177, 66, 0.2);
+
+  background: rgba(222,177,66,.2);
 }
 
 .connection-glow-two {
   right: -100px;
   bottom: -140px;
-  background: rgba(222, 177, 66, 0.17);
+
+  background: rgba(222,177,66,.17);
   animation-delay: -2.5s;
 }
 
@@ -672,7 +899,7 @@ input {
   0%,
   100% {
     transform: scale(1);
-    opacity: 0.6;
+    opacity: .6;
   }
 
   50% {
@@ -692,7 +919,8 @@ input {
   flex-direction: column;
 
   text-align: center;
-  animation: connectionAppear 0.8s ease both;
+
+  animation: connectionAppear .8s ease both;
 }
 
 @keyframes connectionAppear {
@@ -707,8 +935,6 @@ input {
   }
 }
 
-/* Animated SVS logo */
-
 .svs-logo {
   width: 112px;
   height: 112px;
@@ -719,19 +945,19 @@ input {
 
   margin-bottom: 24px;
 
-  border: 1px solid rgba(184, 134, 11, 0.35);
+  border: 1px solid rgba(184,134,11,.35);
   border-radius: 50%;
 
   background: linear-gradient(
     145deg,
-    #fff,
+    white,
     #fff5d9
   );
 
   box-shadow:
-    0 0 0 9px rgba(184, 134, 11, 0.06),
-    0 0 0 19px rgba(184, 134, 11, 0.035),
-    0 18px 45px rgba(184, 134, 11, 0.15);
+    0 0 0 9px rgba(184,134,11,.06),
+    0 0 0 19px rgba(184,134,11,.035),
+    0 18px 45px rgba(184,134,11,.15);
 
   animation: logoPulse 2.5s ease-in-out infinite;
 }
@@ -753,8 +979,6 @@ input {
     #e2b94f,
     #f4d986
   );
-
-  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.3);
 }
 
 .svs-logo-inner span {
@@ -763,7 +987,6 @@ input {
   font-size: 31px;
   font-weight: 900;
   letter-spacing: 1px;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes logoPulse {
@@ -793,8 +1016,6 @@ input {
   letter-spacing: 1px;
 }
 
-/* Progress */
-
 .connection-progress-track {
   width: 100%;
   height: 7px;
@@ -818,9 +1039,9 @@ input {
     #b8860b
   );
 
-  box-shadow: 0 0 12px rgba(184, 134, 11, 0.35);
+  box-shadow: 0 0 12px rgba(184,134,11,.35);
 
-  transition: width 0.25s ease;
+  transition: width .25s ease;
 }
 
 .connection-percentage {
@@ -852,7 +1073,7 @@ input {
 @keyframes wifiPulse {
   0%,
   100% {
-    opacity: 0.45;
+    opacity: .45;
   }
 
   50% {
@@ -884,12 +1105,12 @@ input {
   cursor: pointer;
 }
 
-/* =====================================================
+/* =========================================
    ANIMATIONS
-===================================================== */
+========================================= */
 
 .spin {
-  animation: spin 0.8s linear infinite;
+  animation: spin .8s linear infinite;
 }
 
 @keyframes spin {
@@ -898,9 +1119,19 @@ input {
   }
 }
 
-/* =====================================================
-   MOBILE — FULL 100VW × 100VH
-===================================================== */
+/* =========================================
+   TABLET
+========================================= */
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .registration-card {
+    width: min(90%, 550px);
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
 
 @media (max-width: 600px) {
   html,
@@ -913,7 +1144,7 @@ input {
 
   .customers-page,
   .svs-connection-screen {
-    width: 100vw;
+    width: 100%;
     height: 100vh;
     height: 100dvh;
 
@@ -921,9 +1152,9 @@ input {
     max-height: 100dvh;
 
     padding:
-      max(10px, env(safe-area-inset-top))
-      12px
-      max(10px, env(safe-area-inset-bottom));
+      max(9px, env(safe-area-inset-top))
+      11px
+      max(9px, env(safe-area-inset-bottom));
 
     overflow: hidden;
   }
@@ -933,13 +1164,13 @@ input {
     max-width: 440px;
     max-height: 100%;
 
-    padding: 18px 17px 12px;
+    padding: 17px 16px 11px;
 
     border-radius: 21px;
   }
 
   .registration-header {
-    gap: 11px;
+    gap: 10px;
   }
 
   .registration-logo {
@@ -953,12 +1184,12 @@ input {
   }
 
   .registration-brand > span {
-    font-size: 8px;
+    font-size: 7px;
     letter-spacing: 2px;
   }
 
   .registration-brand h1 {
-    font-size: clamp(16px, 5vw, 20px);
+    font-size: clamp(15px, 4.8vw, 19px);
   }
 
   .registration-brand p {
@@ -967,15 +1198,15 @@ input {
 
   .secure-indicator {
     padding: 6px 8px;
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .registration-divider {
-    margin: 13px 0;
+    margin: 12px 0;
   }
 
   .registration-heading {
-    margin-bottom: 13px;
+    margin-bottom: 11px;
   }
 
   .registration-heading h2 {
@@ -986,8 +1217,13 @@ input {
     font-size: 10px;
   }
 
+  .eyebrow {
+    font-size: 8px;
+    margin-bottom: 5px;
+  }
+
   .customer-registration-form {
-    gap: 11px;
+    gap: 10px;
   }
 
   .registration-field label {
@@ -1014,6 +1250,29 @@ input {
     font-size: 8px;
   }
 
+  .telugu-field {
+    padding: 9px;
+    border-radius: 12px;
+  }
+
+  .telugu-input {
+    height: 47px;
+  }
+
+  .telugu-input input {
+    font-size: 19px;
+  }
+
+  .telugu-status {
+    padding: 4px 6px;
+    font-size: 8px;
+  }
+
+  .telugu-helper {
+    font-size: 8px;
+    margin-top: 6px;
+  }
+
   .registration-actions {
     gap: 8px;
     margin-top: 3px;
@@ -1025,8 +1284,8 @@ input {
   }
 
   .registration-footer {
-    margin-top: 12px;
-    padding-top: 10px;
+    margin-top: 10px;
+    padding-top: 9px;
     font-size: 8px;
   }
 
@@ -1050,51 +1309,71 @@ input {
   }
 }
 
-/* =====================================================
-   SMALL MOBILE HEIGHTS
-===================================================== */
+/* =========================================
+   SHORT MOBILE HEIGHT
+========================================= */
 
 @media (max-width: 380px), (max-height: 700px) {
   .registration-card {
-    padding: 12px 14px 9px;
+    padding: 10px 12px 8px;
   }
 
   .registration-divider {
-    margin: 9px 0;
+    margin: 8px 0;
   }
 
   .registration-heading {
-    margin-bottom: 9px;
+    margin-bottom: 7px;
   }
 
   .customer-registration-form {
-    gap: 8px;
+    gap: 7px;
   }
 
   .registration-input {
     height: 39px;
   }
 
+  .telugu-field {
+    padding: 7px;
+  }
+
+  .telugu-input {
+    height: 43px;
+  }
+
   .registration-actions button {
-    height: 40px;
+    height: 39px;
   }
 
   .registration-footer {
-    margin-top: 8px;
-    padding-top: 7px;
+    margin-top: 7px;
+    padding-top: 6px;
   }
 }
 
-/* =====================================================
+/* =========================================
+   PREVENT MOBILE INPUT ZOOM
+========================================= */
+
+@media (max-width: 600px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* =========================================
    ACCESSIBILITY
-===================================================== */
+========================================= */
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: .01ms !important;
   }
 }
